@@ -26,9 +26,15 @@ function App() {
   const [bulkPreview, setBulkPreview] = useState<Word[]>([]);
   
   // Cards mode
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [cardQueue, setCardQueue] = useState<number[]>([]);
+  const [cardIndex, setCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showPinyin, setShowPinyin] = useState(true);
+  const [knownCount, setKnownCount] = useState(0);
+  const [unknownCount, setUnknownCount] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchDelta, setTouchDelta] = useState(0);
   
   // Quiz mode
   const [quizAnswer, setQuizAnswer] = useState('');
@@ -82,6 +88,9 @@ function App() {
       setWriteInput('');
       setWriteResult(null);
       setShowHint(false);
+    }
+    if (mode === 'cards' && words.length > 0 && cardQueue.length === 0) {
+      startCardsSession();
     }
   }, [mode, words.length]);
 
@@ -160,15 +169,50 @@ function App() {
     setBulkPreview([]);
   };
 
-  const nextCard = useCallback(() => {
+  const shuffleArray = (arr: number[]): number[] => {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  };
+
+  const startCardsSession = useCallback(() => {
+    const indices = Array.from({ length: words.length }, (_, i) => i);
+    setCardQueue(shuffleArray(indices));
+    setCardIndex(0);
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev + 1) % wordsLenRef.current);
+    setKnownCount(0);
+    setUnknownCount(0);
+    setSwipeDirection(null);
+  }, [words.length]);
+
+  const swipeRight = useCallback(() => {
+    // Помню - убираем карточку
+    setSwipeDirection('right');
+    setTimeout(() => {
+      setKnownCount(prev => prev + 1);
+      setCardIndex(prev => prev + 1);
+      setIsFlipped(false);
+      setSwipeDirection(null);
+    }, 300);
   }, []);
 
-  const prevCard = useCallback(() => {
-    setIsFlipped(false);
-    setCurrentIndex((prev) => (prev - 1 + wordsLenRef.current) % wordsLenRef.current);
-  }, []);
+  const swipeLeft = useCallback(() => {
+    // Не помню - возвращаем карточку в конец очереди
+    setSwipeDirection('left');
+    setTimeout(() => {
+      setUnknownCount(prev => prev + 1);
+      const currentCardWordIndex = cardQueue[cardIndex];
+      // Удаляем текущую карточку и добавляем в конец
+      const newQueue = [...cardQueue.slice(0, cardIndex), ...cardQueue.slice(cardIndex + 1), currentCardWordIndex];
+      setCardQueue(newQueue);
+      // Индекс остаётся тем же, т.к. мы удалили элемент перед ним
+      setIsFlipped(false);
+      setSwipeDirection(null);
+    }, 300);
+  }, [cardQueue, cardIndex]);
 
   const checkQuizAnswer = () => {
     if (!quizAnswer.trim() || quizOrder.length === 0) return;
@@ -226,8 +270,8 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (modeRef.current === 'cards') {
-        if (e.key === 'ArrowRight') nextCard();
-        if (e.key === 'ArrowLeft') prevCard();
+        if (e.key === 'ArrowRight') swipeRight();
+        if (e.key === 'ArrowLeft') swipeLeft();
         if (e.key === ' ') {
           e.preventDefault();
           setIsFlipped(!isFlippedRef.current);
@@ -236,7 +280,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextCard, prevCard]);
+  }, [swipeRight, swipeLeft]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
@@ -258,7 +302,7 @@ function App() {
                 ✏️ Добавить
               </button>
               <button
-                onClick={() => { setMode('cards'); setCurrentIndex(0); setIsFlipped(false); }}
+                onClick={() => { setMode('cards'); startCardsSession(); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   mode === 'cards' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'
                 }`}
@@ -417,19 +461,72 @@ function App() {
         )}
 
         {/* Cards Mode */}
-        {mode === 'cards' && (
-          <div className="space-y-6">
-            {words.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-6xl mb-4">🃏</div>
-                <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">
-                    Карточка {currentIndex + 1} из {words.length}
-                  </span>
+        {mode === 'cards' && (() => {
+          const isFinished = cardIndex >= cardQueue.length;
+          const currentCardWord = !isFinished && cardQueue.length > 0
+            ? words[cardQueue[cardIndex]]
+            : null;
+
+          return (
+            <div className="space-y-6">
+              {words.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="text-6xl mb-4">🃏</div>
+                  <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
+                </div>
+              ) : isFinished ? (
+                /* Finished screen */
+                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Раунд завершён!</h2>
+                  <p className="text-gray-500 mb-6">Все карточки пройдены</p>
+                  
+                  <div className="flex justify-center gap-8 mb-8">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-green-600">{knownCount}</div>
+                      <div className="text-sm text-gray-500 mt-1">Помню ✓</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-orange-500">{unknownCount}</div>
+                      <div className="text-sm text-gray-500 mt-1">Повторить ↩</div>
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+                    <div
+                      className="bg-green-500 h-3 rounded-full transition-all"
+                      style={{ width: `${((knownCount) / (knownCount + unknownCount)) * 100}%` }}
+                    ></div>
+                  </div>
+
+                  <button
+                    onClick={startCardsSession}
+                    className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
+                  >
+                    Начать заново 🔄
+                  </button>
+                </div>
+              ) : currentCardWord ? (
+                <>
+                  {/* Progress */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 text-sm">
+                      Осталось: {cardQueue.length - cardIndex}
+                    </span>
+                    <div className="flex gap-3 text-sm">
+                      <span className="text-green-600 font-medium">✓ {knownCount}</span>
+                      <span className="text-orange-500 font-medium">↩ {unknownCount}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(cardIndex / cardQueue.length) * 100}%` }}
+                    ></div>
+                  </div>
+
                   <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                     <input
                       type="checkbox"
@@ -439,82 +536,119 @@ function App() {
                     />
                     Показывать пиньинь
                   </label>
-                </div>
 
-                {/* Flashcard */}
-                <div
-                  onClick={() => setIsFlipped(!isFlipped)}
-                  className="cursor-pointer"
-                  style={{ perspective: '1000px' }}
-                >
+                  {/* Flashcard with swipe */}
                   <div
-                    className="relative w-full h-80 transition-transform duration-500"
-                    style={{
-                      transformStyle: 'preserve-3d',
-                      transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                    className="relative"
+                    onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
+                    onTouchMove={(e) => {
+                      if (touchStart !== null) {
+                        setTouchDelta(e.touches[0].clientX - touchStart);
+                      }
                     }}
-                  >
-                    {/* Front */}
-                    <div
-                      className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8"
-                      style={{ backfaceVisibility: 'hidden' }}
-                    >
-                      <div className="text-6xl font-bold text-red-700 mb-4">
-                        {words[currentIndex].chinese}
-                      </div>
-                      {showPinyin && words[currentIndex].pinyin && (
-                        <div className="text-xl text-gray-500 italic">
-                          {words[currentIndex].pinyin}
-                        </div>
-                      )}
-                      <div className="absolute bottom-4 text-sm text-gray-400">
-                        Нажмите, чтобы перевернуть
-                      </div>
-                    </div>
-                    {/* Back */}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8"
-                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                    >
-                      <div className="text-3xl font-bold text-white text-center">
-                        {words[currentIndex].translation}
-                      </div>
-                      <div className="absolute bottom-4 text-sm text-red-200">
-                        Нажмите, чтобы перевернуть
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex justify-center gap-4">
-                  <button
-                    onClick={prevCard}
-                    className="px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg text-red-600 font-medium transition-all border border-red-100 hover:border-red-300"
-                  >
-                    ← Назад
-                  </button>
-                  <button
+                    onTouchEnd={() => {
+                      if (touchDelta > 80) {
+                        swipeRight();
+                      } else if (touchDelta < -80) {
+                        swipeLeft();
+                      }
+                      setTouchStart(null);
+                      setTouchDelta(0);
+                    }}
                     onClick={() => setIsFlipped(!isFlipped)}
-                    className="px-6 py-3 bg-red-600 text-white rounded-xl shadow-md hover:shadow-lg font-medium transition-all hover:bg-red-700"
+                    style={{ perspective: '1000px' }}
                   >
-                    Перевернуть
-                  </button>
-                  <button
-                    onClick={nextCard}
-                    className="px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg text-red-600 font-medium transition-all border border-red-100 hover:border-red-300"
-                  >
-                    Вперёд →
-                  </button>
-                </div>
+                    <div
+                      className="relative w-full h-80 transition-all duration-300 cursor-pointer"
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transform: `
+                          ${isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'}
+                          ${swipeDirection === 'left' ? 'translateX(-150%) rotate(-15deg)' : ''}
+                          ${swipeDirection === 'right' ? 'translateX(150%) rotate(15deg)' : ''}
+                          ${!swipeDirection && touchDelta !== 0 ? `translateX(${touchDelta}px) rotate(${touchDelta * 0.05}deg)` : ''}
+                        `,
+                        transition: swipeDirection ? 'transform 0.3s ease-out' : (touchDelta !== 0 ? 'none' : 'transform 0.5s'),
+                        opacity: swipeDirection ? 0 : 1,
+                      }}
+                    >
+                      {/* Front */}
+                      <div
+                        className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8"
+                        style={{ backfaceVisibility: 'hidden' }}
+                      >
+                        <div className="text-6xl font-bold text-red-700 mb-4">
+                          {currentCardWord.chinese}
+                        </div>
+                        {showPinyin && currentCardWord.pinyin && (
+                          <div className="text-xl text-gray-500 italic">
+                            {currentCardWord.pinyin}
+                          </div>
+                        )}
+                        <div className="absolute bottom-4 text-sm text-gray-400">
+                          Нажмите, чтобы перевернуть
+                        </div>
+                      </div>
+                      {/* Back */}
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8"
+                        style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                      >
+                        <div className="text-3xl font-bold text-white text-center">
+                          {currentCardWord.translation}
+                        </div>
+                        <div className="absolute bottom-4 text-sm text-red-200">
+                          Нажмите, чтобы перевернуть
+                        </div>
+                      </div>
+                    </div>
 
-                <p className="text-center text-sm text-gray-400">
-                  💡 Клавиши ← → для навигации, пробел для переворота
-                </p>
-              </>
-            )}
-          </div>
-        )}
+                    {/* Swipe indicators */}
+                    {touchDelta > 30 && (
+                      <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">
+                        ✓ Помню
+                      </div>
+                    )}
+                    {touchDelta < -30 && (
+                      <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">
+                        ↩ Не помню
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Swipe buttons */}
+                  <div className="flex justify-center gap-6">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); swipeLeft(); }}
+                      className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-orange-200 hover:border-orange-400 active:scale-95"
+                    >
+                      <span className="text-3xl">↩️</span>
+                      <span className="text-sm font-medium text-orange-600">Не помню</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
+                      className="flex flex-col items-center gap-1 px-6 py-4 bg-red-600 text-white rounded-2xl shadow-md hover:shadow-lg transition-all hover:bg-red-700 active:scale-95"
+                    >
+                      <span className="text-3xl">🔄</span>
+                      <span className="text-sm font-medium">Перевернуть</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); swipeRight(); }}
+                      className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400 active:scale-95"
+                    >
+                      <span className="text-3xl">✓</span>
+                      <span className="text-sm font-medium text-green-600">Помню</span>
+                    </button>
+                  </div>
+
+                  <p className="text-center text-sm text-gray-400">
+                    💡 Свайпните карточку или используйте кнопки. ← → на клавиатуре
+                  </p>
+                </>
+              ) : null}
+            </div>
+          );
+        })()}
 
         {/* Quiz Mode */}
         {mode === 'quiz' && (() => {
