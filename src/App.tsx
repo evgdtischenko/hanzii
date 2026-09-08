@@ -572,33 +572,33 @@ function App() {
                         opacity: swipeDirection ? 0 : 1,
                       }}
                     >
-                      {/* Front */}
+                      {/* Front - перевод */}
                       <div
                         className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8"
                         style={{ backfaceVisibility: 'hidden' }}
                       >
-                        <div className="text-6xl font-bold text-red-700 mb-4">
-                          {currentCardWord.chinese}
+                        <div className="text-3xl font-bold text-gray-800 text-center mb-4">
+                          {currentCardWord.translation}
                         </div>
-                        {showPinyin && currentCardWord.pinyin && (
-                          <div className="text-xl text-gray-500 italic">
-                            {currentCardWord.pinyin}
-                          </div>
-                        )}
                         <div className="absolute bottom-4 text-sm text-gray-400">
-                          Нажмите, чтобы перевернуть
+                          Нажмите, чтобы увидеть иероглиф
                         </div>
                       </div>
-                      {/* Back */}
+                      {/* Back - иероглиф */}
                       <div
                         className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8"
                         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                       >
-                        <div className="text-3xl font-bold text-white text-center">
-                          {currentCardWord.translation}
+                        <div className="text-6xl font-bold text-white mb-4">
+                          {currentCardWord.chinese}
                         </div>
+                        {showPinyin && currentCardWord.pinyin && (
+                          <div className="text-xl text-red-100 italic">
+                            {currentCardWord.pinyin}
+                          </div>
+                        )}
                         <div className="absolute bottom-4 text-sm text-red-200">
-                          Нажмите, чтобы перевернуть
+                          Нажмите, чтобы вернуться
                         </div>
                       </div>
                     </div>
