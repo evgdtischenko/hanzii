@@ -1,5 +1,462 @@
-export default function App() {
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+interface Word {
+  id: string;
+  chinese: string;
+  pinyin: string;
+  translation: string;
+}
+
+type Mode = 'add' | 'cards' | 'quiz';
+
+function App() {
+  const [words, setWords] = useState<Word[]>(() => {
+    const saved = localStorage.getItem('chinese-words');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [mode, setMode] = useState<Mode>('add');
+  
+  // Add word form
+  const [chinese, setChinese] = useState('');
+  const [pinyin, setPinyin] = useState('');
+  const [translation, setTranslation] = useState('');
+  
+  // Cards mode
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showPinyin, setShowPinyin] = useState(true);
+  
+  // Quiz mode
+  const [quizAnswer, setQuizAnswer] = useState('');
+  const [quizResult, setQuizResult] = useState<'correct' | 'wrong' | null>(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizTotal, setQuizTotal] = useState(0);
+  const [quizOrder, setQuizOrder] = useState<number[]>([]);
+  const [quizIndex, setQuizIndex] = useState(0);
+
+  const modeRef = useRef(mode);
+  const wordsLenRef = useRef(words.length);
+  const isFlippedRef = useRef(isFlipped);
+
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { wordsLenRef.current = words.length; }, [words.length]);
+  useEffect(() => { isFlippedRef.current = isFlipped; }, [isFlipped]);
+
+  useEffect(() => {
+    localStorage.setItem('chinese-words', JSON.stringify(words));
+  }, [words]);
+
+  useEffect(() => {
+    if (mode === 'quiz' && words.length > 0) {
+      const order = Array.from({ length: words.length }, (_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      setQuizOrder(order);
+      setQuizIndex(0);
+      setQuizAnswer('');
+      setQuizResult(null);
+    }
+  }, [mode, words.length]);
+
+  const addWord = () => {
+    if (!chinese.trim() || !translation.trim()) return;
+    const newWord: Word = {
+      id: Date.now().toString(),
+      chinese: chinese.trim(),
+      pinyin: pinyin.trim(),
+      translation: translation.trim(),
+    };
+    setWords([...words, newWord]);
+    setChinese('');
+    setPinyin('');
+    setTranslation('');
+  };
+
+  const deleteWord = (id: string) => {
+    setWords(words.filter(w => w.id !== id));
+  };
+
+  const nextCard = useCallback(() => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev + 1) % wordsLenRef.current);
+  }, []);
+
+  const prevCard = useCallback(() => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev - 1 + wordsLenRef.current) % wordsLenRef.current);
+  }, []);
+
+  const checkQuizAnswer = () => {
+    if (!quizAnswer.trim() || quizOrder.length === 0) return;
+    const currentWord = words[quizOrder[quizIndex]];
+    const isCorrect = quizAnswer.trim().toLowerCase() === currentWord.translation.toLowerCase();
+    setQuizResult(isCorrect ? 'correct' : 'wrong');
+    setQuizTotal(prev => prev + 1);
+    if (isCorrect) setQuizScore(prev => prev + 1);
+  };
+
+  const nextQuiz = () => {
+    setQuizAnswer('');
+    setQuizResult(null);
+    if (quizIndex < quizOrder.length - 1) {
+      setQuizIndex(prev => prev + 1);
+    } else {
+      const order = Array.from({ length: words.length }, (_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      setQuizOrder(order);
+      setQuizIndex(0);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (modeRef.current === 'cards') {
+        if (e.key === 'ArrowRight') nextCard();
+        if (e.key === 'ArrowLeft') prevCard();
+        if (e.key === ' ') {
+          e.preventDefault();
+          setIsFlipped(!isFlippedRef.current);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nextCard, prevCard]);
+
   return (
-    <div/>
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-red-100 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <h1 className="text-2xl font-bold text-red-700 flex items-center gap-2">
+              <span className="text-3xl">🀄</span>
+              <span>汉字卡片</span>
+            </h1>
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+              <button
+                onClick={() => setMode('add')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mode === 'add' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'
+                }`}
+              >
+                ✏️ Добавить
+              </button>
+              <button
+                onClick={() => { setMode('cards'); setCurrentIndex(0); setIsFlipped(false); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mode === 'cards' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'
+                }`}
+              >
+                🃏 Карточки
+              </button>
+              <button
+                onClick={() => { setMode('quiz'); setQuizScore(0); setQuizTotal(0); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mode === 'quiz' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'
+                }`}
+              >
+                🧠 Тест
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Add Words Mode */}
+        {mode === 'add' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Добавить слово</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Китайский иероглиф</label>
+                  <input
+                    type="text"
+                    value={chinese}
+                    onChange={(e) => setChinese(e.target.value)}
+                    placeholder="例如: 你好"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg transition-all"
+                    onKeyDown={(e) => e.key === 'Enter' && addWord()}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Пиньинь</label>
+                  <input
+                    type="text"
+                    value={pinyin}
+                    onChange={(e) => setPinyin(e.target.value)}
+                    placeholder="nǐ hǎo"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all"
+                    onKeyDown={(e) => e.key === 'Enter' && addWord()}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Перевод</label>
+                  <input
+                    type="text"
+                    value={translation}
+                    onChange={(e) => setTranslation(e.target.value)}
+                    placeholder="привет"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all"
+                    onKeyDown={(e) => e.key === 'Enter' && addWord()}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={addWord}
+                disabled={!chinese.trim() || !translation.trim()}
+                className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              >
+                Добавить карточку
+              </button>
+            </div>
+
+            {/* Word List */}
+            {words.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Ваши слова ({words.length})
+                </h2>
+                <div className="space-y-2">
+                  {words.map((word) => (
+                    <div
+                      key={word.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-red-50 transition-all group"
+                    >
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <span className="text-2xl font-bold text-red-700">{word.chinese}</span>
+                        {word.pinyin && (
+                          <span className="text-sm text-gray-500 italic">{word.pinyin}</span>
+                        )}
+                        <span className="text-gray-700">{word.translation}</span>
+                      </div>
+                      <button
+                        onClick={() => deleteWord(word.id)}
+                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all p-2 text-lg"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {words.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-6xl mb-4">📝</div>
+                <p className="text-lg">Добавьте первое китайское слово для изучения!</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cards Mode */}
+        {mode === 'cards' && (
+          <div className="space-y-6">
+            {words.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-6xl mb-4">🃏</div>
+                <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">
+                    Карточка {currentIndex + 1} из {words.length}
+                  </span>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showPinyin}
+                      onChange={(e) => setShowPinyin(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    Показывать пиньинь
+                  </label>
+                </div>
+
+                {/* Flashcard */}
+                <div
+                  onClick={() => setIsFlipped(!isFlipped)}
+                  className="cursor-pointer"
+                  style={{ perspective: '1000px' }}
+                >
+                  <div
+                    className="relative w-full h-80 transition-transform duration-500"
+                    style={{
+                      transformStyle: 'preserve-3d',
+                      transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                    }}
+                  >
+                    {/* Front */}
+                    <div
+                      className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8"
+                      style={{ backfaceVisibility: 'hidden' }}
+                    >
+                      <div className="text-6xl font-bold text-red-700 mb-4">
+                        {words[currentIndex].chinese}
+                      </div>
+                      {showPinyin && words[currentIndex].pinyin && (
+                        <div className="text-xl text-gray-500 italic">
+                          {words[currentIndex].pinyin}
+                        </div>
+                      )}
+                      <div className="absolute bottom-4 text-sm text-gray-400">
+                        Нажмите, чтобы перевернуть
+                      </div>
+                    </div>
+                    {/* Back */}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8"
+                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                    >
+                      <div className="text-3xl font-bold text-white text-center">
+                        {words[currentIndex].translation}
+                      </div>
+                      <div className="absolute bottom-4 text-sm text-red-200">
+                        Нажмите, чтобы перевернуть
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={prevCard}
+                    className="px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg text-red-600 font-medium transition-all border border-red-100 hover:border-red-300"
+                  >
+                    ← Назад
+                  </button>
+                  <button
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    className="px-6 py-3 bg-red-600 text-white rounded-xl shadow-md hover:shadow-lg font-medium transition-all hover:bg-red-700"
+                  >
+                    Перевернуть
+                  </button>
+                  <button
+                    onClick={nextCard}
+                    className="px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg text-red-600 font-medium transition-all border border-red-100 hover:border-red-300"
+                  >
+                    Вперёд →
+                  </button>
+                </div>
+
+                <p className="text-center text-sm text-gray-400">
+                  💡 Клавиши ← → для навигации, пробел для переворота
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Quiz Mode */}
+        {mode === 'quiz' && (
+          <div className="space-y-6">
+            {words.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-6xl mb-4">🧠</div>
+                <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">
+                    Вопрос {quizIndex + 1} из {quizOrder.length}
+                  </span>
+                  <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    Счёт: {quizScore}/{quizTotal}
+                  </span>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
+                  <p className="text-gray-500 mb-2">Что означает:</p>
+                  <div className="text-6xl font-bold text-red-700 mb-2">
+                    {words[quizOrder[quizIndex]].chinese}
+                  </div>
+                  {words[quizOrder[quizIndex]].pinyin && (
+                    <div className="text-xl text-gray-400 italic mb-6">
+                      {words[quizOrder[quizIndex]].pinyin}
+                    </div>
+                  )}
+
+                  <div className="max-w-md mx-auto mt-6">
+                    <input
+                      type="text"
+                      value={quizAnswer}
+                      onChange={(e) => setQuizAnswer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          if (quizResult) nextQuiz();
+                          else checkQuizAnswer();
+                        }
+                      }}
+                      placeholder="Введите перевод..."
+                      disabled={quizResult !== null}
+                      className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg text-center transition-all disabled:bg-gray-50"
+                      autoFocus
+                    />
+                  </div>
+
+                  {quizResult && (
+                    <div className={`mt-4 p-4 rounded-xl ${
+                      quizResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                      {quizResult === 'correct' ? (
+                        <p className="font-medium">✅ Правильно!</p>
+                      ) : (
+                        <p className="font-medium">
+                          ❌ Неправильно. Правильный ответ: <strong>{words[quizOrder[quizIndex]].translation}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!quizResult ? (
+                    <button
+                      onClick={checkQuizAnswer}
+                      disabled={!quizAnswer.trim()}
+                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md"
+                    >
+                      Проверить
+                    </button>
+                  ) : (
+                    <button
+                      onClick={nextQuiz}
+                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
+                    >
+                      {quizIndex < quizOrder.length - 1 ? 'Следующий вопрос →' : 'Начать заново 🔄'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((quizIndex + 1) / quizOrder.length) * 100}%` }}
+                  ></div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="text-center py-6 text-gray-400 text-sm">
+        <p>汉字卡片 — Учите китайский с удовольствием 🎋</p>
+      </footer>
+    </div>
   );
 }
+
+export default App;
