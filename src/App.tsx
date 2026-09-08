@@ -24,6 +24,8 @@ function App() {
   // Bulk add
   const [bulkText, setBulkText] = useState('');
   const [bulkPreview, setBulkPreview] = useState<Word[]>([]);
+  const [showExport, setShowExport] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Cards mode
   const [cardQueue, setCardQueue] = useState<number[]>([]);
@@ -423,9 +425,17 @@ function App() {
             {/* Word List */}
             {words.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Ваши слова ({words.length})
-                </h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    Ваши слова ({words.length})
+                  </h2>
+                  <button
+                    onClick={() => setShowExport(!showExport)}
+                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    {showExport ? '🙈 Скрыть' : '📋 Экспорт'}
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {words.map((word) => (
                     <div
@@ -448,6 +458,42 @@ function App() {
                     </div>
                   ))}
                 </div>
+
+                {/* Export section */}
+                {showExport && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-sm font-medium text-gray-600">
+                        Текст для импорта/бэкапа:
+                      </p>
+                      <button
+                        onClick={() => {
+                          const exportText = words
+                            .map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`)
+                            .join('\n');
+                          navigator.clipboard.writeText(exportText);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                        className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                      >
+                        {copied ? '✓ Скопировано!' : '📋 Копировать'}
+                      </button>
+                    </div>
+                    <textarea
+                      readOnly
+                      value={words
+                        .map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`)
+                        .join('\n')}
+                      rows={8}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-mono text-sm resize-y"
+                      onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      💡 Скопируйте этот текст для бэкапа или переноса на другое устройство
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
