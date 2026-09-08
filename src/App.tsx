@@ -173,6 +173,7 @@ function App() {
   const checkQuizAnswer = () => {
     if (!quizAnswer.trim() || quizOrder.length === 0) return;
     const currentWord = words[quizOrder[quizIndex]];
+    if (!currentWord) return;
     const isCorrect = quizAnswer.trim().toLowerCase() === currentWord.translation.toLowerCase();
     setQuizResult(isCorrect ? 'correct' : 'wrong');
     setQuizTotal(prev => prev + 1);
@@ -198,6 +199,7 @@ function App() {
   const checkWriteAnswer = () => {
     if (!writeInput.trim() || writeOrder.length === 0) return;
     const currentWord = words[writeOrder[writeIndex]];
+    if (!currentWord) return;
     const isCorrect = writeInput.trim() === currentWord.chinese;
     setWriteResult(isCorrect ? 'correct' : 'wrong');
     setWriteTotal(prev => prev + 1);
@@ -515,208 +517,228 @@ function App() {
         )}
 
         {/* Quiz Mode */}
-        {mode === 'quiz' && (
-          <div className="space-y-6">
-            {words.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-6xl mb-4">🧠</div>
-                <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">
-                    Вопрос {quizIndex + 1} из {quizOrder.length}
-                  </span>
-                  <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                    Счёт: {quizScore}/{quizTotal}
-                  </span>
+        {mode === 'quiz' && (() => {
+          const currentWord = quizOrder.length > 0 && quizIndex < quizOrder.length
+            ? words[quizOrder[quizIndex]]
+            : null;
+
+          return (
+            <div className="space-y-6">
+              {words.length === 0 || !currentWord ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="text-6xl mb-4">🧠</div>
+                  <p className="text-lg">
+                    {words.length === 0
+                      ? 'Сначала добавьте слова во вкладке "Добавить"'
+                      : 'Загрузка...'}
+                  </p>
                 </div>
-
-                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                  <p className="text-gray-500 mb-2">Что означает:</p>
-                  <div className="text-6xl font-bold text-red-700 mb-2">
-                    {words[quizOrder[quizIndex]].chinese}
-                  </div>
-                  {words[quizOrder[quizIndex]].pinyin && (
-                    <div className="text-xl text-gray-400 italic mb-6">
-                      {words[quizOrder[quizIndex]].pinyin}
-                    </div>
-                  )}
-
-                  <div className="max-w-md mx-auto mt-6">
-                    <input
-                      type="text"
-                      value={quizAnswer}
-                      onChange={(e) => setQuizAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (quizResult) nextQuiz();
-                          else checkQuizAnswer();
-                        }
-                      }}
-                      placeholder="Введите перевод..."
-                      disabled={quizResult !== null}
-                      className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg text-center transition-all disabled:bg-gray-50"
-                      autoFocus
-                    />
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">
+                      Вопрос {quizIndex + 1} из {quizOrder.length}
+                    </span>
+                    <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      Счёт: {quizScore}/{quizTotal}
+                    </span>
                   </div>
 
-                  {quizResult && (
-                    <div className={`mt-4 p-4 rounded-xl ${
-                      quizResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                      {quizResult === 'correct' ? (
-                        <p className="font-medium">✅ Правильно!</p>
-                      ) : (
-                        <p className="font-medium">
-                          ❌ Неправильно. Правильный ответ: <strong>{words[quizOrder[quizIndex]].translation}</strong>
-                        </p>
-                      )}
+                  <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
+                    <p className="text-gray-500 mb-2">Что означает:</p>
+                    <div className="text-6xl font-bold text-red-700 mb-2">
+                      {currentWord.chinese}
                     </div>
-                  )}
+                    {currentWord.pinyin && (
+                      <div className="text-xl text-gray-400 italic mb-6">
+                        {currentWord.pinyin}
+                      </div>
+                    )}
 
-                  {!quizResult ? (
-                    <button
-                      onClick={checkQuizAnswer}
-                      disabled={!quizAnswer.trim()}
-                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md"
-                    >
-                      Проверить
-                    </button>
-                  ) : (
-                    <button
-                      onClick={nextQuiz}
-                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
-                    >
-                      {quizIndex < quizOrder.length - 1 ? 'Следующий вопрос →' : 'Начать заново 🔄'}
-                    </button>
-                  )}
-                </div>
+                    <div className="max-w-md mx-auto mt-6">
+                      <input
+                        type="text"
+                        value={quizAnswer}
+                        onChange={(e) => setQuizAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (quizResult) nextQuiz();
+                            else checkQuizAnswer();
+                          }
+                        }}
+                        placeholder="Введите перевод..."
+                        disabled={quizResult !== null}
+                        className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg text-center transition-all disabled:bg-gray-50"
+                        autoFocus
+                      />
+                    </div>
 
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${((quizIndex + 1) / quizOrder.length) * 100}%` }}
-                  ></div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                    {quizResult && (
+                      <div className={`mt-4 p-4 rounded-xl ${
+                        quizResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {quizResult === 'correct' ? (
+                          <p className="font-medium">✅ Правильно!</p>
+                        ) : (
+                          <p className="font-medium">
+                            ❌ Неправильно. Правильный ответ: <strong>{currentWord.translation}</strong>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {!quizResult ? (
+                      <button
+                        onClick={checkQuizAnswer}
+                        disabled={!quizAnswer.trim()}
+                        className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md"
+                      >
+                        Проверить
+                      </button>
+                    ) : (
+                      <button
+                        onClick={nextQuiz}
+                        className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
+                      >
+                        {quizIndex < quizOrder.length - 1 ? 'Следующий вопрос →' : 'Начать заново 🔄'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((quizIndex + 1) / quizOrder.length) * 100}%` }}
+                    ></div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Write Mode */}
-        {mode === 'write' && (
-          <div className="space-y-6">
-            {words.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-6xl mb-4">✍️</div>
-                <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">
-                    Слово {writeIndex + 1} из {writeOrder.length}
-                  </span>
-                  <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                    Счёт: {writeScore}/{writeTotal}
-                  </span>
+        {mode === 'write' && (() => {
+          const currentWord = writeOrder.length > 0 && writeIndex < writeOrder.length
+            ? words[writeOrder[writeIndex]]
+            : null;
+
+          return (
+            <div className="space-y-6">
+              {words.length === 0 || !currentWord ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="text-6xl mb-4">✍️</div>
+                  <p className="text-lg">
+                    {words.length === 0
+                      ? 'Сначала добавьте слова во вкладке "Добавить"'
+                      : 'Загрузка...'}
+                  </p>
                 </div>
-
-                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                  <p className="text-gray-500 mb-2">Напишите иероглиф:</p>
-                  <div className="text-4xl font-bold text-red-700 mb-6">
-                    {words[writeOrder[writeIndex]].translation}
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">
+                      Слово {writeIndex + 1} из {writeOrder.length}
+                    </span>
+                    <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      Счёт: {writeScore}/{writeTotal}
+                    </span>
                   </div>
 
-                  <div className="max-w-md mx-auto">
-                    <input
-                      type="text"
-                      value={writeInput}
-                      onChange={(e) => setWriteInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (writeResult) nextWrite();
-                          else checkWriteAnswer();
-                        }
-                      }}
-                      placeholder="Введите иероглиф..."
-                      disabled={writeResult !== null}
-                      className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-3xl text-center transition-all disabled:bg-gray-50"
-                      autoFocus
-                    />
-                  </div>
-
-                  {/* Hint button */}
-                  {words[writeOrder[writeIndex]].pinyin && !writeResult && (
-                    <div className="mt-4">
-                      {!showHint ? (
-                        <button
-                          onClick={() => setShowHint(true)}
-                          className="px-4 py-2 text-sm text-gray-500 hover:text-red-600 transition-all underline"
-                        >
-                          💡 Подсказка (пиньинь)
-                        </button>
-                      ) : (
-                        <div className="inline-block px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl">
-                          <span className="text-lg text-yellow-700 italic">
-                            {words[writeOrder[writeIndex]].pinyin}
-                          </span>
-                        </div>
-                      )}
+                  <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
+                    <p className="text-gray-500 mb-2">Напишите иероглиф:</p>
+                    <div className="text-4xl font-bold text-red-700 mb-6">
+                      {currentWord.translation}
                     </div>
-                  )}
 
-                  {writeResult && (
-                    <div className={`mt-4 p-4 rounded-xl ${
-                      writeResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                      {writeResult === 'correct' ? (
-                        <p className="font-medium">✅ Правильно!</p>
-                      ) : (
-                        <p className="font-medium">
-                          ❌ Неправильно. Правильный ответ: <strong className="text-2xl">{words[writeOrder[writeIndex]].chinese}</strong>
-                          {words[writeOrder[writeIndex]].pinyin && (
-                            <span className="block text-sm mt-1 text-gray-600 italic">
-                              {words[writeOrder[writeIndex]].pinyin}
+                    <div className="max-w-md mx-auto">
+                      <input
+                        type="text"
+                        value={writeInput}
+                        onChange={(e) => setWriteInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (writeResult) nextWrite();
+                            else checkWriteAnswer();
+                          }
+                        }}
+                        placeholder="Введите иероглиф..."
+                        disabled={writeResult !== null}
+                        className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-3xl text-center transition-all disabled:bg-gray-50"
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Hint button */}
+                    {currentWord.pinyin && !writeResult && (
+                      <div className="mt-4">
+                        {!showHint ? (
+                          <button
+                            onClick={() => setShowHint(true)}
+                            className="px-4 py-2 text-sm text-gray-500 hover:text-red-600 transition-all underline"
+                          >
+                            💡 Подсказка (пиньинь)
+                          </button>
+                        ) : (
+                          <div className="inline-block px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl">
+                            <span className="text-lg text-yellow-700 italic">
+                              {currentWord.pinyin}
                             </span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {!writeResult ? (
-                    <button
-                      onClick={checkWriteAnswer}
-                      disabled={!writeInput.trim()}
-                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md"
-                    >
-                      Проверить
-                    </button>
-                  ) : (
-                    <button
-                      onClick={nextWrite}
-                      className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
-                    >
-                      {writeIndex < writeOrder.length - 1 ? 'Следующее слово →' : 'Начать заново 🔄'}
-                    </button>
-                  )}
-                </div>
+                    {writeResult && (
+                      <div className={`mt-4 p-4 rounded-xl ${
+                        writeResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {writeResult === 'correct' ? (
+                          <p className="font-medium">✅ Правильно!</p>
+                        ) : (
+                          <p className="font-medium">
+                            ❌ Неправильно. Правильный ответ: <strong className="text-2xl">{currentWord.chinese}</strong>
+                            {currentWord.pinyin && (
+                              <span className="block text-sm mt-1 text-gray-600 italic">
+                                {currentWord.pinyin}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${((writeIndex + 1) / writeOrder.length) * 100}%` }}
-                  ></div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                    {!writeResult ? (
+                      <button
+                        onClick={checkWriteAnswer}
+                        disabled={!writeInput.trim()}
+                        className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md"
+                      >
+                        Проверить
+                      </button>
+                    ) : (
+                      <button
+                        onClick={nextWrite}
+                        className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
+                      >
+                        {writeIndex < writeOrder.length - 1 ? 'Следующее слово →' : 'Начать заново 🔄'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((writeIndex + 1) / writeOrder.length) * 100}%` }}
+                    ></div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
       </main>
 
       {/* Footer */}
