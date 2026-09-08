@@ -21,6 +21,10 @@ function App() {
   const [pinyin, setPinyin] = useState('');
   const [translation, setTranslation] = useState('');
   
+  // Bulk add
+  const [bulkText, setBulkText] = useState('');
+  const [bulkPreview, setBulkPreview] = useState<Word[]>([]);
+  
   // Cards mode
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -76,6 +80,63 @@ function App() {
 
   const deleteWord = (id: string) => {
     setWords(words.filter(w => w.id !== id));
+  };
+
+  // Parse bulk text into words
+  const parseBulkText = (text: string): Word[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const parsed: Word[] = [];
+    
+    lines.forEach((line, idx) => {
+      // Try different separators: tab, " - ", " = ", " → ", " → ", ","
+      let parts: string[] = [];
+      
+      if (line.includes('\t')) {
+        parts = line.split('\t').map(s => s.trim()).filter(Boolean);
+      } else if (line.includes(' - ')) {
+        parts = line.split(' - ').map(s => s.trim()).filter(Boolean);
+      } else if (line.includes(' = ')) {
+        parts = line.split(' = ').map(s => s.trim()).filter(Boolean);
+      } else if (line.includes(' → ')) {
+        parts = line.split(' → ').map(s => s.trim()).filter(Boolean);
+      } else if (line.includes('->')) {
+        parts = line.split('->').map(s => s.trim()).filter(Boolean);
+      } else if (line.includes(',')) {
+        parts = line.split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        // Try splitting by spaces — first word is Chinese, rest is translation
+        const trimmed = line.trim();
+        const spaceIdx = trimmed.indexOf(' ');
+        if (spaceIdx > 0) {
+          parts = [trimmed.slice(0, spaceIdx), trimmed.slice(spaceIdx + 1).trim()];
+        } else {
+          parts = [trimmed];
+        }
+      }
+      
+      if (parts.length >= 2) {
+        parsed.push({
+          id: `bulk-${Date.now()}-${idx}`,
+          chinese: parts[0],
+          pinyin: parts.length >= 3 ? parts[1] : '',
+          translation: parts.length >= 3 ? parts[2] : parts[1],
+        });
+      }
+    });
+    
+    return parsed;
+  };
+
+  const handleBulkChange = (text: string) => {
+    setBulkText(text);
+    setBulkPreview(parseBulkText(text));
+  };
+
+  const addBulkWords = () => {
+    if (bulkPreview.length === 0) return;
+    setWords([...words, ...bulkPreview]);
+    setBulkText('');
+    setBulkPreview([]);
   };
 
   const nextCard = useCallback(() => {
@@ -215,6 +276,46 @@ function App() {
                 className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
               >
                 Добавить карточку
+              </button>
+            </div>
+
+            {/* Bulk Add */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Массовый ввод</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Вставьте список слов. Каждая строка — одно слово. Формат: <code className="bg-gray-100 px-1 rounded">иероглиф - пиньинь - перевод</code> или <code className="bg-gray-100 px-1 rounded">иероглиф - перевод</code>
+              </p>
+              <textarea
+                value={bulkText}
+                onChange={(e) => handleBulkChange(e.target.value)}
+                placeholder={`你好 - nǐ hǎo - привет\n谢谢 - xiè xie - спасибо\n再见 - zài jiàn - до свидания\n学习 - xué xí - учиться`}
+                rows={8}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all font-mono text-sm resize-y"
+              />
+              
+              {bulkPreview.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">
+                    Будет добавлено: {bulkPreview.length} слов
+                  </p>
+                  <div className="max-h-40 overflow-y-auto space-y-1 mb-4">
+                    {bulkPreview.map((w, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm p-2 bg-red-50 rounded-lg">
+                        <span className="font-bold text-red-700">{w.chinese}</span>
+                        {w.pinyin && <span className="text-gray-500 italic">{w.pinyin}</span>}
+                        <span className="text-gray-700">{w.translation}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={addBulkWords}
+                disabled={bulkPreview.length === 0}
+                className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              >
+                Добавить все ({bulkPreview.length})
               </button>
             </div>
 
