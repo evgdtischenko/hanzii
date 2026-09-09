@@ -55,14 +55,6 @@
             const [touchStart, setTouchStart] = useState(null);
             const [touchDelta, setTouchDelta] = useState(0);
 
-            // Quiz mode
-            const [quizAnswer, setQuizAnswer] = useState('');
-            const [quizResult, setQuizResult] = useState(null);
-            const [quizScore, setQuizScore] = useState(0);
-            const [quizTotal, setQuizTotal] = useState(0);
-            const [quizOrder, setQuizOrder] = useState([]);
-            const [quizIndex, setQuizIndex] = useState(0);
-
             // Write mode
             const [writeInput, setWriteInput] = useState('');
             const [writeResult, setWriteResult] = useState(null);
@@ -97,18 +89,8 @@
             };
 
             useEffect(() => {
-                if (mode === 'quiz' && words.length > 0) {
-                    setQuizOrder(shuffleArray(Array.from({ length: words.length }, (_, i) => i)));
-                    setQuizIndex(0);
-                    setQuizAnswer('');
-                    setQuizResult(null);
-                }
-                if (mode === 'write' && words.length > 0) {
-                    setWriteOrder(shuffleArray(Array.from({ length: words.length }, (_, i) => i)));
-                    setWriteIndex(0);
-                    setWriteInput('');
-                    setWriteResult(null);
-                    setShowHint(false);
+                if (mode === 'write' && words.length > 0 && writeOrder.length === 0) {
+                    startWriteSession();
                 }
                 if (mode === 'cards' && words.length > 0 && cardQueue.length === 0) {
                     startCardsSession();
@@ -219,26 +201,17 @@
                 }, 300);
             }, [cardQueue, cardIndex]);
 
-            const checkQuizAnswer = () => {
-                if (!quizAnswer.trim() || quizOrder.length === 0) return;
-                const currentWord = words[quizOrder[quizIndex]];
-                if (!currentWord) return;
-                const isCorrect = quizAnswer.trim().toLowerCase() === currentWord.translation.toLowerCase();
-                setQuizResult(isCorrect ? 'correct' : 'wrong');
-                setQuizTotal(prev => prev + 1);
-                if (isCorrect) setQuizScore(prev => prev + 1);
-            };
-
-            const nextQuiz = () => {
-                setQuizAnswer('');
-                setQuizResult(null);
-                if (quizIndex < quizOrder.length - 1) {
-                    setQuizIndex(prev => prev + 1);
-                } else {
-                    setQuizOrder(shuffleArray(Array.from({ length: words.length }, (_, i) => i)));
-                    setQuizIndex(0);
-                }
-            };
+            const startWriteSession = useCallback(() => {
+                const indices = Array.from({ length: words.length }, (_, i) => i);
+                setWriteOrder(shuffleArray(indices));
+                setWriteIndex(0);
+                setWriteInput('');
+                setWriteResult(null);
+                setShowHint(false);
+                setWriteScore(0);
+                setWriteTotal(0);
+                setWriteSwipeDirection(null);
+            }, [words.length]);
 
             const checkWriteAnswer = () => {
                 if (!writeInput.trim() || writeOrder.length === 0) return;
@@ -251,15 +224,17 @@
             };
 
             const nextWrite = () => {
+                // Если ответ был неправильным, возвращаем слово в конец очереди
+                if (writeResult === 'wrong') {
+                    const currentWriteWordIndex = writeOrder[writeIndex];
+                    const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
+                    setWriteOrder(newWriteOrder);
+                }
                 setWriteInput('');
                 setWriteResult(null);
                 setShowHint(false);
-                if (writeIndex < writeOrder.length - 1) {
-                    setWriteIndex(prev => prev + 1);
-                } else {
-                    setWriteOrder(shuffleArray(Array.from({ length: words.length }, (_, i) => i)));
-                    setWriteIndex(0);
-                }
+                // writeIndex не увеличивается, т.к. при неправильном ответе мы удалили текущий элемент
+                // и добавили в конец, поэтому следующий элемент автоматически становится текущим
             };
 
             const writeSwipeRight = useCallback(() => {
@@ -315,8 +290,7 @@
                                 <div className="flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1">
                                     <button onClick={() => setMode('add')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'add' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✏️ Добавить</button>
                                     <button onClick={() => { setMode('cards'); startCardsSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'cards' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>🃏 Карточки</button>
-                                    <button onClick={() => { setMode('quiz'); setQuizScore(0); setQuizTotal(0); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'quiz' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>🧠 Тест</button>
-                                    <button onClick={() => { setMode('write'); setWriteScore(0); setWriteTotal(0); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'write' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✍️ Написать</button>
+                                    <button onClick={() => { setMode('write'); startWriteSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'write' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✍️ Написать</button>
                                 </div>
                             </div>
                         </div>
@@ -496,70 +470,51 @@
                             );
                         })()}
 
-                        {mode === 'quiz' && (() => {
-                            const currentWord = quizOrder.length > 0 && quizIndex < quizOrder.length ? words[quizOrder[quizIndex]] : null;
-
-                            return (
-                                <div className="space-y-6">
-                                    {words.length === 0 || !currentWord ? (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="text-6xl mb-4">🧠</div>
-                                            <p className="text-lg">{words.length === 0 ? 'Сначала добавьте слова во вкладке "Добавить"' : 'Загрузка...'}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-500">Вопрос {quizIndex + 1} из {quizOrder.length}</span>
-                                                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Счёт: {quizScore}/{quizTotal}</span>
-                                            </div>
-                                            <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                                                <p className="text-gray-500 mb-2">Что означает:</p>
-                                                <div className="text-6xl font-bold text-red-700 mb-2">{currentWord.chinese}</div>
-                                                {currentWord.pinyin && <div className="text-xl text-gray-400 italic mb-6">{currentWord.pinyin}</div>}
-                                                <div className="max-w-md mx-auto mt-6">
-                                                    <input type="text" value={quizAnswer} onChange={(e) => setQuizAnswer(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { if (quizResult) nextQuiz(); else checkQuizAnswer(); } }} placeholder="Введите перевод..." disabled={quizResult !== null} className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg text-center transition-all disabled:bg-gray-50" autoFocus />
-                                                </div>
-                                                {quizResult && (
-                                                    <div className={`mt-4 p-4 rounded-xl ${quizResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                                        {quizResult === 'correct' ? <p className="font-medium">✅ Правильно!</p> : <p className="font-medium">❌ Неправильно. Правильный ответ: <strong>{currentWord.translation}</strong></p>}
-                                                    </div>
-                                                )}
-                                                {!quizResult ? (
-                                                    <button onClick={checkQuizAnswer} disabled={!quizAnswer.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
-                                                ) : (
-                                                    <button onClick={nextQuiz} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">{quizIndex < quizOrder.length - 1 ? 'Следующий вопрос →' : 'Начать заново 🔄'}</button>
-                                                )}
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${((quizIndex + 1) / quizOrder.length) * 100}%` }}></div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
                         {mode === 'write' && (() => {
-                            const currentWord = writeOrder.length > 0 && writeIndex < writeOrder.length ? words[writeOrder[writeIndex]] : null;
+                            const isWriteFinished = writeIndex >= writeOrder.length;
+                            const currentWord = !isWriteFinished && writeOrder.length > 0 ? words[writeOrder[writeIndex]] : null;
 
                             return (
                                 <div className="space-y-6">
-                                    {words.length === 0 || !currentWord ? (
+                                    {words.length === 0 ? (
                                         <div className="text-center py-12 text-gray-400">
                                             <div className="text-6xl mb-4">✍️</div>
-                                            <p className="text-lg">{words.length === 0 ? 'Сначала добавьте слова во вкладке "Добавить"' : 'Загрузка...'}</p>
+                                            <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
                                         </div>
-                                    ) : (
+                                    ) : isWriteFinished ? (
+                                        <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
+                                            <div className="text-6xl mb-4">🎉</div>
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Все иероглифы выучены!</h2>
+                                            <p className="text-gray-500 mb-6">Поздравляем! Вы прошли все слова</p>
+
+                                            <div className="flex justify-center gap-8 mb-8">
+                                                <div className="text-center">
+                                                    <div className="text-4xl font-bold text-green-600">{writeScore}</div>
+                                                    <div className="text-sm text-gray-500 mt-1">Правильно ✓</div>
+                                                </div>
+                                                <div className="text-center">
+                                                    <div className="text-4xl font-bold text-orange-500">{writeTotal - writeScore}</div>
+                                                    <div className="text-sm text-gray-500 mt-1">Ошибок ✗</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+                                                <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${(writeScore / writeTotal) * 100}%` }}></div>
+                                            </div>
+
+                                            <button onClick={startWriteSession} className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Начать заново 🔄</button>
+                                        </div>
+                                    ) : currentWord ? (
                                         <>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-500">Осталось: {writeOrder.length - writeIndex}</span>
+                                                <span className="text-gray-500 text-sm">Осталось: {writeOrder.length - writeIndex}</span>
                                                 <div className="flex gap-3 text-sm">
                                                     <span className="text-green-600 font-medium">✓ {writeScore}</span>
                                                     <span className="text-orange-500 font-medium">↩ {writeTotal - writeScore}</span>
                                                 </div>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${((writeIndex + 1) / writeOrder.length) * 100}%` }}></div>
+                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(writeIndex / writeOrder.length) * 100}%` }}></div>
                                             </div>
 
                                             <div className="relative"
@@ -606,7 +561,7 @@
                                                     {!writeResult ? (
                                                         <button onClick={checkWriteAnswer} disabled={!writeInput.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
                                                     ) : (
-                                                        <button onClick={nextWrite} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">{writeIndex < writeOrder.length - 1 ? 'Следующее слово →' : 'Начать заново 🔄'}</button>
+                                                        <button onClick={nextWrite} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Далее →</button>
                                                     )}
                                                 </div>
 
@@ -633,7 +588,7 @@
 
                                             <p className="text-center text-sm text-gray-400">💡 Свайпните карточку или используйте кнопки</p>
                                         </>
-                                    )}
+                                    ) : null}
                                 </div>
                             );
                         })()}
@@ -910,6 +865,7 @@
                     const currentWriteWordIndex = writeOrder[writeIndex];
                     const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
                     setWriteOrder(newWriteOrder);
+                    setWriteTotal(prev => prev + 1);
                     setWriteInput('');
                     setWriteResult(null);
                     setShowHint(false);
