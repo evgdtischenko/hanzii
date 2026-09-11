@@ -221,6 +221,11 @@
                 setWriteResult(isCorrect ? 'correct' : 'wrong');
                 setWriteTotal(prev => prev + 1);
                 if (isCorrect) setWriteScore(prev => prev + 1);
+
+                // Автоматический переход к следующему слову через 1 секунду
+                setTimeout(() => {
+                    nextWrite();
+                }, 1000);
             };
 
             const nextWrite = () => {
@@ -559,10 +564,8 @@
                                                             {writeResult === 'correct' ? <p className="font-medium">✅ Правильно!</p> : <p className="font-medium">❌ Неправильно. Правильный ответ: <strong className="text-2xl">{currentWord.chinese}</strong>{currentWord.pinyin && <span className="block text-sm mt-1 text-gray-600 italic">{currentWord.pinyin}</span>}</p>}
                                                         </div>
                                                     )}
-                                                    {!writeResult ? (
+                                                    {!writeResult && (
                                                         <button onClick={checkWriteAnswer} disabled={!writeInput.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
-                                                    ) : (
-                                                        <button onClick={nextWrite} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Далее →</button>
                                                     )}
                                                 </div>
 
@@ -829,13 +832,15 @@
                 if (!currentWord) return;
                 const isCorrect = writeInput.trim() === currentWord.chinese;
                 setWriteResult(isCorrect ? 'correct' : 'wrong');
-                setWriteTotal(prev => prev + 1);
-                if (isCorrect) setWriteScore(prev => prev + 1);
 
-                // Автоматический переход к следующему слову через 1 секунду
+                // Автоматический свайп: вправо если правильно, влево если нет
                 setTimeout(() => {
-                    nextWrite();
-                }, 1000);
+                    if (isCorrect) {
+                        writeSwipeRight();
+                    } else {
+                        writeSwipeLeft();
+                    }
+                }, 800);
             };
 
             const nextWrite = () => {
