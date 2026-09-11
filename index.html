@@ -256,6 +256,7 @@
                     const currentWriteWordIndex = writeOrder[writeIndex];
                     const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
                     setWriteOrder(newWriteOrder);
+                    setWriteTotal(prev => prev + 1);
                     setWriteInput('');
                     setWriteResult(null);
                     setShowHint(false);
@@ -830,6 +831,11 @@
                 setWriteResult(isCorrect ? 'correct' : 'wrong');
                 setWriteTotal(prev => prev + 1);
                 if (isCorrect) setWriteScore(prev => prev + 1);
+
+                // Автоматический переход к следующему слову через 1 секунду
+                setTimeout(() => {
+                    nextWrite();
+                }, 1000);
             };
 
             const nextWrite = () => {
@@ -1168,10 +1174,8 @@
                                                             {writeResult === 'correct' ? <p className="font-medium">✅ Правильно!</p> : <p className="font-medium">❌ Неправильно. Правильный ответ: <strong className="text-2xl">{currentWord.chinese}</strong>{currentWord.pinyin && <span className="block text-sm mt-1 text-gray-600 italic">{currentWord.pinyin}</span>}</p>}
                                                         </div>
                                                     )}
-                                                    {!writeResult ? (
+                                                    {!writeResult && (
                                                         <button onClick={checkWriteAnswer} disabled={!writeInput.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
-                                                    ) : (
-                                                        <button onClick={nextWrite} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Далее →</button>
                                                     )}
                                                 </div>
 
