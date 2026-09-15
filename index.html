@@ -219,13 +219,15 @@
                 if (!currentWord) return;
                 const isCorrect = writeInput.trim() === currentWord.chinese;
                 setWriteResult(isCorrect ? 'correct' : 'wrong');
-                setWriteTotal(prev => prev + 1);
-                if (isCorrect) setWriteScore(prev => prev + 1);
 
-                // Автоматический переход к следующему слову через 1 секунду
+                // Автоматический свайп: вправо если правильно, влево если нет
                 setTimeout(() => {
-                    nextWrite();
-                }, 1000);
+                    if (isCorrect) {
+                        writeSwipeRight();
+                    } else {
+                        writeSwipeLeft();
+                    }
+                }, 800);
             };
 
             const nextWrite = () => {
@@ -966,7 +968,10 @@
                                     <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
                                         <div className="flex justify-between items-center mb-4">
                                             <h2 className="text-xl font-semibold text-gray-800">Ваши слова ({words.length})</h2>
-                                            <button onClick={() => setShowExport(!showExport)} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all flex items-center gap-2">{showExport ? '🙈 Скрыть' : '📋 Экспорт'}</button>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => { if (window.confirm('Удалить все слова? Это действие нельзя отменить.')) { setWords([]); setCardQueue([]); setWriteOrder([]); } }} className="px-4 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-all flex items-center gap-2">🗑️ Удалить все</button>
+                                                <button onClick={() => setShowExport(!showExport)} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all flex items-center gap-2">{showExport ? '🙈 Скрыть' : '📋 Экспорт'}</button>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             {words.map((word) => (
