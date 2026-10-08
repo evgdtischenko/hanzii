@@ -1,1231 +1,771 @@
---- index.html (原始)
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汉字卡片 - Карточки для изучения китайского</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汉字卡片 - Карточки для изучения китайского</title>
+<script defer src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.26.0/dist/index.js"></script>
+<style>
+:root{
+  --bg1:#fef2f2;--bg2:#fff7ed;--bg3:#fefce8;
+  --panel:#ffffff;--panel-2:#f9fafb;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+  --red:#dc2626;--red-d:#b91c1c;--red-l:#fee2e2;--orange:#ea580c;--green:#16a34a;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(220,38,38,.06);
+  --cjk:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Noto Sans SC',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg1:#1c1111;--bg2:#1a1410;--bg3:#18160e;
+    --panel:#241a1a;--panel-2:#2b2020;--text:#f3f4f6;--muted:#a1a1aa;--line:#3b2d2d;
+    --red:#ef4444;--red-d:#dc2626;--red-l:#4a1d1d;--orange:#fb923c;--green:#4ade80;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell',sans-serif;
+  color:var(--text);min-height:100vh;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3)) fixed;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.zh{font-family:var(--cjk)}
+
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--panel) 85%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--red-l);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.head-in{max-width:56rem;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:1.5rem;font-weight:700;color:var(--red-d)}
+@media (prefers-color-scheme:dark){h1{color:var(--red)}}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--panel-2);border-radius:12px;padding:4px}
+.tab{border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;font-weight:600;font-size:.95rem}
+.tab:hover{color:var(--red)}
+.tab[aria-selected=true]{background:var(--panel);color:var(--red-d);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){.tab[aria-selected=true]{color:var(--red)}}
+
+main{max-width:56rem;margin:0 auto;padding:24px 16px 32px}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 16px 28px}
+.panel{background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.panel h2{font-size:1.1rem;margin-bottom:12px}
+.hint{color:var(--muted);font-size:.85rem;margin-top:6px;line-height:1.4}
+
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:.85rem;color:var(--muted);font-weight:600}
+input[type=text],input[type=search],textarea,select{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:1rem}
+textarea{min-height:120px;resize:vertical;font-family:var(--cjk),monospace}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.grow>*{flex:1 1 140px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media (max-width:600px){.grid3{grid-template-columns:1fr}}
+.with-btn{display:flex;gap:6px}
+.with-btn input{flex:1}
+
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:600;background:var(--red);color:#fff}
+.btn:hover{background:var(--red-d)}
+.btn:disabled{background:#9ca3af;cursor:not-allowed}
+.btn.ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--red-l)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+.btn.danger:hover{background:var(--red-l)}
+.btn.sm{padding:6px 10px;font-size:.85rem}
+.icon-btn{border:0;background:transparent;padding:6px 8px;border-radius:8px;font-size:1.05rem;line-height:1}
+.icon-btn:hover{background:var(--red-l)}
+
+.preview{margin-top:10px;border:1px dashed var(--line);border-radius:10px;padding:8px 12px;font-size:.9rem}
+.preview .pr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);gap:8px;padding:3px 0;border-bottom:1px solid var(--line)}
+.preview .pr:last-child{border-bottom:0}
+.warn{color:var(--orange)}
+
+.word-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.w-btns{display:flex;margin-left:auto}
+.word-row:last-child{border-bottom:0}
+.word-row .w-zh{font-size:1.5rem;min-width:2.5em;font-family:var(--cjk)}
+.word-row .w-mid{flex:1 1 6rem;min-width:0}
+.word-row .w-py{color:var(--red-d);font-size:.9rem}
+@media (prefers-color-scheme:dark){.word-row .w-py{color:var(--red)}}
+.word-row .w-tr{overflow-wrap:break-word}
+.word-row.edit{flex-wrap:wrap}
+.word-row.edit input{flex:1 1 130px;padding:8px 10px}
+.empty{text-align:center;color:var(--muted);padding:28px 8px}
+
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--orange),var(--red));transition:width .25s}
+.meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin:6px 0 14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px;font-size:.9rem}
+.toolbar label{display:flex;gap:6px;align-items:center}
+.toolbar select{width:auto;padding:6px 8px}
+
+.card-wrap{perspective:1200px;max-width:26rem;margin:0 auto 18px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.card{position:relative;height:17rem;cursor:pointer;transition:transform .25s ease,opacity .25s ease;outline-offset:6px}
+.card.dragging{transition:none}
+.card.fly-r{transform:translateX(130%) rotate(14deg);opacity:0}
+.card.fly-l{transform:translateX(-130%) rotate(-14deg);opacity:0}
+.card-inner{position:absolute;inset:0;transition:transform .45s;transform-style:preserve-3d}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:20px;box-shadow:var(--shadow);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;overflow:hidden}
+.face.front{background:var(--panel);border:2px solid var(--red-l)}
+.face.back{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;transform:rotateY(180deg)}
+.face .lab{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;opacity:.65}
+.face .big{font-size:2.2rem;font-weight:700;overflow-wrap:anywhere;line-height:1.2}
+.face .big.zh{font-size:4.2rem;font-weight:500}
+.face .py{font-size:1.25rem;opacity:.9}
+.face .speak{border:0;background:rgba(127,127,127,.18);border-radius:99px;padding:6px 12px;font-size:1.1rem;color:inherit}
+.face .speak:hover{background:rgba(127,127,127,.32)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.actions .btn{min-width:8.5rem}
+.btn.no{background:var(--panel);color:var(--orange);border:2px solid #fed7aa}
+.btn.no:hover{background:#fff7ed}
+.btn.yes{background:var(--panel);color:var(--green);border:2px solid #bbf7d0}
+.btn.yes:hover{background:#f0fdf4}
+@media (prefers-color-scheme:dark){.btn.no{border-color:#7c2d12}.btn.no:hover{background:#2a1a10}.btn.yes{border-color:#14532d}.btn.yes:hover{background:#12261a}}
+.keys{text-align:center;color:var(--muted);font-size:.8rem;margin-top:12px}
+
+.done{text-align:center;padding:12px 0}
+.done h2{font-size:1.5rem;margin-bottom:14px}
+.stats{display:flex;justify-content:center;gap:28px;margin:16px 0 22px}
+.stat b{display:block;font-size:2rem}
+.stat.ok b{color:var(--green)}
+.stat.bad b{color:var(--orange)}
+.stat span{color:var(--muted);font-size:.85rem}
+
+.write-q{text-align:center;padding:10px 0 4px}
+.write-q .big{font-size:2.1rem;font-weight:700;overflow-wrap:anywhere}
+.write-q .py{font-size:1.3rem;color:var(--red-d);margin-top:8px;min-height:1.6em}
+@media (prefers-color-scheme:dark){.write-q .py{color:var(--red)}}
+#writeInput{font-size:2rem;text-align:center;font-family:var(--cjk)}
+#writeInput.ok{border-color:var(--green);background:#f0fdf4;color:#14532d}
+#writeInput.bad{border-color:var(--orange);background:#fff7ed;color:#7c2d12}
+.result{text-align:center;font-weight:700;margin:12px 0;min-height:1.5em}
+.result.ok{color:var(--green)}
+.result.bad{color:var(--orange)}
+.result .ans{font-size:1.8rem;font-family:var(--cjk);display:block;margin-top:4px;color:var(--text)}
+
+#toasts{position:fixed;left:0;right:0;bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:50;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;background:#111827;color:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center;max-width:32rem}
+.toast-btn{border:0;background:transparent;color:#fca5a5;font-weight:700;padding:2px 4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){.card,.card-inner,.bar>i{transition:none}}
+</style>
 </head>
 <body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
-
-        function App() {
-            const [words, setWords] = useState(() => {
-                const saved = localStorage.getItem('chinese-words');
-                return saved ? JSON.parse(saved) : [];
-            });
-            const [mode, setMode] = useState('add');
-
-            // Add word form
-            const [chinese, setChinese] = useState('');
-            const [pinyin, setPinyin] = useState('');
-            const [translation, setTranslation] = useState('');
-
-            // Bulk add
-            const [bulkText, setBulkText] = useState('');
-            const [bulkPreview, setBulkPreview] = useState([]);
-            const [showExport, setShowExport] = useState(false);
-            const [copied, setCopied] = useState(false);
-
-            // Cards mode
-            const [cardQueue, setCardQueue] = useState([]);
-            const [cardIndex, setCardIndex] = useState(0);
-            const [isFlipped, setIsFlipped] = useState(false);
-            const [showPinyin, setShowPinyin] = useState(true);
-            const [knownCount, setKnownCount] = useState(0);
-            const [unknownCount, setUnknownCount] = useState(0);
-            const [swipeDirection, setSwipeDirection] = useState(null);
-            const [touchStart, setTouchStart] = useState(null);
-            const [touchDelta, setTouchDelta] = useState(0);
-
-            // Write mode
-            const [writeInput, setWriteInput] = useState('');
-            const [writeResult, setWriteResult] = useState(null);
-            const [showHint, setShowHint] = useState(false);
-            const [writeOrder, setWriteOrder] = useState([]);
-            const [writeIndex, setWriteIndex] = useState(0);
-            const [writeScore, setWriteScore] = useState(0);
-            const [writeTotal, setWriteTotal] = useState(0);
-            const [writeSwipeDirection, setWriteSwipeDirection] = useState(null);
-            const [writeTouchStart, setWriteTouchStart] = useState(null);
-            const [writeTouchDelta, setWriteTouchDelta] = useState(0);
-
-            const modeRef = useRef(mode);
-            const wordsLenRef = useRef(words.length);
-            const isFlippedRef = useRef(isFlipped);
-
-            useEffect(() => { modeRef.current = mode; }, [mode]);
-            useEffect(() => { wordsLenRef.current = words.length; }, [words.length]);
-            useEffect(() => { isFlippedRef.current = isFlipped; }, [isFlipped]);
-
-            useEffect(() => {
-                localStorage.setItem('chinese-words', JSON.stringify(words));
-            }, [words]);
-
-            const shuffleArray = (arr) => {
-                const result = [...arr];
-                for (let i = result.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [result[i], result[j]] = [result[j], result[i]];
-                }
-                return result;
-            };
-
-            useEffect(() => {
-                if (mode === 'write' && words.length > 0 && writeOrder.length === 0) {
-                    startWriteSession();
-                }
-                if (mode === 'cards' && words.length > 0 && cardQueue.length === 0) {
-                    startCardsSession();
-                }
-            }, [mode, words.length]);
-
-            const addWord = () => {
-                if (!chinese.trim() || !translation.trim()) return;
-                const newWord = {
-                    id: Date.now().toString(),
-                    chinese: chinese.trim(),
-                    pinyin: pinyin.trim(),
-                    translation: translation.trim(),
-                };
-                setWords([...words, newWord]);
-                setChinese('');
-                setPinyin('');
-                setTranslation('');
-            };
-
-            const deleteWord = (id) => {
-                setWords(words.filter(w => w.id !== id));
-            };
-
-            const parseBulkText = (text) => {
-                const lines = text.split('\n').filter(line => line.trim());
-                const parsed = [];
-
-                lines.forEach((line, idx) => {
-                    let parts = [];
-
-                    if (line.includes('\t')) {
-                        parts = line.split('\t').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' - ')) {
-                        parts = line.split(' - ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' = ')) {
-                        parts = line.split(' = ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' → ')) {
-                        parts = line.split(' → ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes('->')) {
-                        parts = line.split('->').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(',')) {
-                        parts = line.split(',').map(s => s.trim()).filter(Boolean);
-                    } else {
-                        const trimmed = line.trim();
-                        const spaceIdx = trimmed.indexOf(' ');
-                        if (spaceIdx > 0) {
-                            parts = [trimmed.slice(0, spaceIdx), trimmed.slice(spaceIdx + 1).trim()];
-                        } else {
-                            parts = [trimmed];
-                        }
-                    }
-
-                    if (parts.length >= 2) {
-                        parsed.push({
-                            id: `bulk-${Date.now()}-${idx}`,
-                            chinese: parts[0],
-                            pinyin: parts.length >= 3 ? parts[1] : '',
-                            translation: parts.length >= 3 ? parts[2] : parts[1],
-                        });
-                    }
-                });
-
-                return parsed;
-            };
-
-            const handleBulkChange = (text) => {
-                setBulkText(text);
-                setBulkPreview(parseBulkText(text));
-            };
-
-            const addBulkWords = () => {
-                if (bulkPreview.length === 0) return;
-                setWords([...words, ...bulkPreview]);
-                setBulkText('');
-                setBulkPreview([]);
-            };
-
-            const startCardsSession = useCallback(() => {
-                const indices = Array.from({ length: words.length }, (_, i) => i);
-                setCardQueue(shuffleArray(indices));
-                setCardIndex(0);
-                setIsFlipped(false);
-                setKnownCount(0);
-                setUnknownCount(0);
-                setSwipeDirection(null);
-            }, [words.length]);
-
-            const swipeRight = useCallback(() => {
-                setSwipeDirection('right');
-                setTimeout(() => {
-                    setKnownCount(prev => prev + 1);
-                    setCardIndex(prev => prev + 1);
-                    setIsFlipped(false);
-                    setSwipeDirection(null);
-                }, 300);
-            }, []);
-
-            const swipeLeft = useCallback(() => {
-                setSwipeDirection('left');
-                setTimeout(() => {
-                    setUnknownCount(prev => prev + 1);
-                    const currentCardWordIndex = cardQueue[cardIndex];
-                    const newQueue = [...cardQueue.slice(0, cardIndex), ...cardQueue.slice(cardIndex + 1), currentCardWordIndex];
-                    setCardQueue(newQueue);
-                    setIsFlipped(false);
-                    setSwipeDirection(null);
-                }, 300);
-            }, [cardQueue, cardIndex]);
-
-            const startWriteSession = useCallback(() => {
-                const indices = Array.from({ length: words.length }, (_, i) => i);
-                setWriteOrder(shuffleArray(indices));
-                setWriteIndex(0);
-                setWriteInput('');
-                setWriteResult(null);
-                setShowHint(false);
-                setWriteScore(0);
-                setWriteTotal(0);
-                setWriteSwipeDirection(null);
-            }, [words.length]);
-
-            const checkWriteAnswer = () => {
-                if (!writeInput.trim() || writeOrder.length === 0) return;
-                const currentWord = words[writeOrder[writeIndex]];
-                if (!currentWord) return;
-                const isCorrect = writeInput.trim() === currentWord.chinese;
-                setWriteResult(isCorrect ? 'correct' : 'wrong');
-
-                // Автоматический свайп: вправо если правильно, влево если нет
-                setTimeout(() => {
-                    if (isCorrect) {
-                        writeSwipeRight();
-                    } else {
-                        writeSwipeLeft();
-                    }
-                }, 800);
-            };
-
-            const nextWrite = () => {
-                // Если ответ был неправильным, возвращаем слово в конец очереди
-                if (writeResult === 'wrong') {
-                    const currentWriteWordIndex = writeOrder[writeIndex];
-                    const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
-                    setWriteOrder(newWriteOrder);
-                }
-                setWriteInput('');
-                setWriteResult(null);
-                setShowHint(false);
-                // writeIndex не увеличивается, т.к. при неправильном ответе мы удалили текущий элемент
-                // и добавили в конец, поэтому следующий элемент автоматически становится текущим
-            };
-
-            const writeSwipeRight = useCallback(() => {
-                setWriteSwipeDirection('right');
-                setTimeout(() => {
-                    setWriteScore(prev => prev + 1);
-                    setWriteTotal(prev => prev + 1);
-                    setWriteIndex(prev => prev + 1);
-                    setWriteInput('');
-                    setWriteResult(null);
-                    setShowHint(false);
-                    setWriteSwipeDirection(null);
-                }, 300);
-            }, []);
-
-            const writeSwipeLeft = useCallback(() => {
-                setWriteSwipeDirection('left');
-                setTimeout(() => {
-                    const currentWriteWordIndex = writeOrder[writeIndex];
-                    const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
-                    setWriteOrder(newWriteOrder);
-                    setWriteTotal(prev => prev + 1);
-                    setWriteInput('');
-                    setWriteResult(null);
-                    setShowHint(false);
-                    setWriteSwipeDirection(null);
-                }, 300);
-            }, [writeOrder, writeIndex]);
-
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if (modeRef.current === 'cards') {
-                        if (e.key === 'ArrowRight') swipeRight();
-                        if (e.key === 'ArrowLeft') swipeLeft();
-                        if (e.key === ' ') {
-                            e.preventDefault();
-                            setIsFlipped(!isFlippedRef.current);
-                        }
-                    }
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [swipeRight, swipeLeft]);
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
-                    <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-red-100 sticky top-0 z-10">
-                        <div className="max-w-4xl mx-auto px-4 py-4">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <h1 className="text-2xl font-bold text-red-700 flex items-center gap-2">
-                                    <span className="text-3xl">🀄</span>
-                                    <span>汉字卡片</span>
-                                </h1>
-                                <div className="flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1">
-                                    <button onClick={() => setMode('add')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'add' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✏️ Добавить</button>
-                                    <button onClick={() => { setMode('cards'); startCardsSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'cards' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>🃏 Карточки</button>
-                                    <button onClick={() => { setMode('write'); startWriteSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'write' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✍️ Написать</button>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-4xl mx-auto px-4 py-8">
-                        {mode === 'add' && (
-                            <div className="space-y-6">
-                                <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Добавить слово</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Китайский иероглиф</label>
-                                            <input type="text" value={chinese} onChange={(e) => setChinese(e.target.value)} placeholder="例如: 你好" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Пиньинь</label>
-                                            <input type="text" value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="nǐ hǎo" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Перевод</label>
-                                            <input type="text" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="привет" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                    </div>
-                                    <button onClick={addWord} disabled={!chinese.trim() || !translation.trim()} className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">Добавить карточку</button>
-                                </div>
-
-                                <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Массовый ввод</h2>
-                                    <p className="text-sm text-gray-500 mb-4">Вставьте список слов. Каждая строка — одно слово. Формат: <code className="bg-gray-100 px-1 rounded">иероглиф - пиньинь - перевод</code> или <code className="bg-gray-100 px-1 rounded">иероглиф - перевод</code></p>
-                                    <textarea value={bulkText} onChange={(e) => handleBulkChange(e.target.value)} placeholder={`你好 - nǐ hǎo - привет\n谢谢 - xiè xie - спасибо\n再见 - zài jiàn - до свидания\n学习 - xué xí - учиться`} rows={8} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all font-mono text-sm resize-y" />
-
-                                    {bulkPreview.length > 0 && (
-                                        <div className="mt-4">
-                                            <p className="text-sm font-medium text-gray-600 mb-2">Будет добавлено: {bulkPreview.length} слов</p>
-                                            <div className="max-h-40 overflow-y-auto space-y-1 mb-4">
-                                                {bulkPreview.map((w, i) => (
-                                                    <div key={i} className="flex items-center gap-3 text-sm p-2 bg-red-50 rounded-lg">
-                                                        <span className="font-bold text-red-700">{w.chinese}</span>
-                                                        {w.pinyin && <span className="text-gray-500 italic">{w.pinyin}</span>}
-                                                        <span className="text-gray-700">{w.translation}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <button onClick={addBulkWords} disabled={bulkPreview.length === 0} className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">Добавить все ({bulkPreview.length})</button>
-                                </div>
-
-                                {words.length > 0 && (
-                                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h2 className="text-xl font-semibold text-gray-800">Ваши слова ({words.length})</h2>
-                                            <button onClick={() => setShowExport(!showExport)} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all flex items-center gap-2">{showExport ? '🙈 Скрыть' : '📋 Экспорт'}</button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {words.map((word) => (
-                                                <div key={word.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-red-50 transition-all group">
-                                                    <div className="flex items-center gap-4 flex-wrap">
-                                                        <span className="text-2xl font-bold text-red-700">{word.chinese}</span>
-                                                        {word.pinyin && <span className="text-sm text-gray-500 italic">{word.pinyin}</span>}
-                                                        <span className="text-gray-700">{word.translation}</span>
-                                                    </div>
-                                                    <button onClick={() => deleteWord(word.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all p-2 text-lg">✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {showExport && (
-                                            <div className="mt-6 pt-6 border-t border-gray-200">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <p className="text-sm font-medium text-gray-600">Текст для импорта/бэкапа:</p>
-                                                    <button onClick={() => {
-                                                        const exportText = words.map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`).join('\n');
-                                                        navigator.clipboard.writeText(exportText);
-                                                        setCopied(true);
-                                                        setTimeout(() => setCopied(false), 2000);
-                                                    }} className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all">{copied ? '✓ Скопировано!' : '📋 Копировать'}</button>
-                                                </div>
-                                                <textarea readOnly value={words.map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`).join('\n')} rows={8} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-mono text-sm resize-y" onClick={(e) => e.target.select()} />
-                                                <p className="text-xs text-gray-400 mt-2">💡 Скопируйте этот текст для бэкапа или переноса на другое устройство</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {words.length === 0 && (
-                                    <div className="text-center py-12 text-gray-400">
-                                        <div className="text-6xl mb-4">📝</div>
-                                        <p className="text-lg">Добавьте первое китайское слово для изучения!</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {mode === 'cards' && (() => {
-                            const isFinished = cardIndex >= cardQueue.length;
-                            const currentCardWord = !isFinished && cardQueue.length > 0 ? words[cardQueue[cardIndex]] : null;
-
-                            return (
-                                <div className="space-y-6">
-                                    {words.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="text-6xl mb-4">🃏</div>
-                                            <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-                                        </div>
-                                    ) : isFinished ? (
-                                        <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                                            <div className="text-6xl mb-4">🎉</div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Раунд завершён!</h2>
-                                            <p className="text-gray-500 mb-6">Все карточки пройдены</p>
-                                            <div className="flex justify-center gap-8 mb-8">
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-green-600">{knownCount}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Помню ✓</div>
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-orange-500">{unknownCount}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Повторить ↩</div>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-                                                <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${((knownCount) / (knownCount + unknownCount)) * 100}%` }}></div>
-                                            </div>
-                                            <button onClick={startCardsSession} className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Начать заново 🔄</button>
-                                        </div>
-                                    ) : currentCardWord ? (
-                                        <>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-500 text-sm">Осталось: {cardQueue.length - cardIndex}</span>
-                                                <div className="flex gap-3 text-sm">
-                                                    <span className="text-green-600 font-medium">✓ {knownCount}</span>
-                                                    <span className="text-orange-500 font-medium">↩ {unknownCount}</span>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(cardIndex / cardQueue.length) * 100}%` }}></div>
-                                            </div>
-                                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                                                <input type="checkbox" checked={showPinyin} onChange={(e) => setShowPinyin(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
-                                                Показывать пиньинь
-                                            </label>
-                                            <div className="relative" onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchMove={(e) => { if (touchStart !== null) setTouchDelta(e.touches[0].clientX - touchStart); }} onTouchEnd={() => { if (touchDelta > 80) swipeRight(); else if (touchDelta < -80) swipeLeft(); setTouchStart(null); setTouchDelta(0); }} onClick={() => setIsFlipped(!isFlipped)} style={{ perspective: '1000px' }}>
-                                                <div className="relative w-full h-80 transition-all duration-300 cursor-pointer" style={{ transformStyle: 'preserve-3d', transform: `${isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'} ${swipeDirection === 'left' ? 'translateX(-150%) rotate(-15deg)' : ''} ${swipeDirection === 'right' ? 'translateX(150%) rotate(15deg)' : ''} ${!swipeDirection && touchDelta !== 0 ? `translateX(${touchDelta}px) rotate(${touchDelta * 0.05}deg)` : ''}`, transition: swipeDirection ? 'transform 0.3s ease-out' : (touchDelta !== 0 ? 'none' : 'transform 0.5s'), opacity: swipeDirection ? 0 : 1 }}>
-                                                    <div className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: 'hidden' }}>
-                                                        <div className="text-3xl font-bold text-gray-800 text-center mb-4">{currentCardWord.translation}</div>
-                                                        <div className="absolute bottom-4 text-sm text-gray-400">Нажмите, чтобы увидеть иероглиф</div>
-                                                    </div>
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                                                        <div className="text-6xl font-bold text-white mb-4">{currentCardWord.chinese}</div>
-                                                        {showPinyin && currentCardWord.pinyin && <div className="text-xl text-red-100 italic">{currentCardWord.pinyin}</div>}
-                                                        <div className="absolute bottom-4 text-sm text-red-200">Нажмите, чтобы вернуться</div>
-                                                    </div>
-                                                </div>
-                                                {touchDelta > 30 && <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">✓ Помню</div>}
-                                                {touchDelta < -30 && <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">↩ Не помню</div>}
-                                            </div>
-                                            <div className="flex justify-center gap-6">
-                                                <button onClick={(e) => { e.stopPropagation(); swipeLeft(); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-orange-200 hover:border-orange-400 active:scale-95">
-                                                    <span className="text-3xl">↩️</span>
-                                                    <span className="text-sm font-medium text-orange-600">Не помню</span>
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-red-600 text-white rounded-2xl shadow-md hover:shadow-lg transition-all hover:bg-red-700 active:scale-95">
-                                                    <span className="text-3xl">🔄</span>
-                                                    <span className="text-sm font-medium">Перевернуть</span>
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); swipeRight(); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400 active:scale-95">
-                                                    <span className="text-3xl">✓</span>
-                                                    <span className="text-sm font-medium text-green-600">Помню</span>
-                                                </button>
-                                            </div>
-                                            <p className="text-center text-sm text-gray-400">💡 Свайпните карточку или используйте кнопки. ← → на клавиатуре</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                            );
-                        })()}
-
-                        {mode === 'write' && (() => {
-                            const isWriteFinished = writeIndex >= writeOrder.length;
-                            const currentWord = !isWriteFinished && writeOrder.length > 0 ? words[writeOrder[writeIndex]] : null;
-
-                            return (
-                                <div className="space-y-6">
-                                    {words.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="text-6xl mb-4">✍️</div>
-                                            <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-                                        </div>
-                                    ) : isWriteFinished ? (
-                                        <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                                            <div className="text-6xl mb-4">🎉</div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Все иероглифы выучены!</h2>
-                                            <p className="text-gray-500 mb-6">Поздравляем! Вы прошли все слова</p>
-
-                                            <div className="flex justify-center gap-8 mb-8">
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-green-600">{writeScore}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Правильно ✓</div>
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-orange-500">{writeTotal - writeScore}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Ошибок ✗</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-                                                <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${(writeScore / writeTotal) * 100}%` }}></div>
-                                            </div>
-
-                                            <button onClick={startWriteSession} className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Начать заново 🔄</button>
-                                        </div>
-                                    ) : currentWord ? (
-                                        <>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-500 text-sm">Осталось: {writeOrder.length - writeIndex}</span>
-                                                <div className="flex gap-3 text-sm">
-                                                    <span className="text-green-600 font-medium">✓ {writeScore}</span>
-                                                    <span className="text-orange-500 font-medium">↩ {writeTotal - writeScore}</span>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(writeIndex / writeOrder.length) * 100}%` }}></div>
-                                            </div>
-
-                                            <div className="relative"
-                                                onTouchStart={(e) => setWriteTouchStart(e.touches[0].clientX)}
-                                                onTouchMove={(e) => { if (writeTouchStart !== null && !writeResult) setWriteTouchDelta(e.touches[0].clientX - writeTouchStart); }}
-                                                onTouchEnd={() => {
-                                                    if (!writeResult) {
-                                                        if (writeTouchDelta > 80) writeSwipeRight();
-                                                        else if (writeTouchDelta < -80) writeSwipeLeft();
-                                                    }
-                                                    setWriteTouchStart(null);
-                                                    setWriteTouchDelta(0);
-                                                }}
-                                                style={{ perspective: '1000px' }}
-                                            >
-                                                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center transition-all duration-300"
-                                                    style={{
-                                                        transform: `${writeSwipeDirection === 'left' ? 'translateX(-150%) rotate(-15deg)' : ''} ${writeSwipeDirection === 'right' ? 'translateX(150%) rotate(15deg)' : ''} ${!writeSwipeDirection && writeTouchDelta !== 0 ? `translateX(${writeTouchDelta}px) rotate(${writeTouchDelta * 0.05}deg)` : ''}`,
-                                                        transition: writeSwipeDirection ? 'transform 0.3s ease-out' : (writeTouchDelta !== 0 ? 'none' : 'transform 0.5s'),
-                                                        opacity: writeSwipeDirection ? 0 : 1
-                                                    }}
-                                                >
-                                                    <p className="text-gray-500 mb-2">Напишите иероглиф:</p>
-                                                    <div className="text-4xl font-bold text-red-700 mb-6">{currentWord.translation}</div>
-                                                    <div className="max-w-md mx-auto">
-                                                        <input type="text" value={writeInput} onChange={(e) => setWriteInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { if (writeResult) nextWrite(); else checkWriteAnswer(); } }} placeholder="Введите иероглиф..." disabled={writeResult !== null} className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-3xl text-center transition-all disabled:bg-gray-50" autoFocus />
-                                                    </div>
-                                                    {currentWord.pinyin && !writeResult && (
-                                                        <div className="mt-4">
-                                                            {!showHint ? (
-                                                                <button onClick={() => setShowHint(true)} className="px-4 py-2 text-sm text-gray-500 hover:text-red-600 transition-all underline">💡 Подсказка (пиньинь)</button>
-                                                            ) : (
-                                                                <div className="inline-block px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl">
-                                                                    <span className="text-lg text-yellow-700 italic">{currentWord.pinyin}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                    {writeResult && (
-                                                        <div className={`mt-4 p-4 rounded-xl ${writeResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                                            {writeResult === 'correct' ? <p className="font-medium">✅ Правильно!</p> : <p className="font-medium">❌ Неправильно. Правильный ответ: <strong className="text-2xl">{currentWord.chinese}</strong>{currentWord.pinyin && <span className="block text-sm mt-1 text-gray-600 italic">{currentWord.pinyin}</span>}</p>}
-                                                        </div>
-                                                    )}
-                                                    {!writeResult && (
-                                                        <button onClick={checkWriteAnswer} disabled={!writeInput.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
-                                                    )}
-                                                </div>
-
-                                                {writeTouchDelta > 30 && !writeResult && (
-                                                    <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">✓ Помню</div>
-                                                )}
-                                                {writeTouchDelta < -30 && !writeResult && (
-                                                    <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">↩ Не помню</div>
-                                                )}
-                                            </div>
-
-                                            {!writeResult && (
-                                                <div className="flex justify-center gap-6">
-                                                    <button onClick={writeSwipeLeft} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-orange-200 hover:border-orange-400 active:scale-95">
-                                                        <span className="text-3xl">↩️</span>
-                                                        <span className="text-sm font-medium text-orange-600">Не помню</span>
-                                                    </button>
-                                                    <button onClick={writeSwipeRight} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400 active:scale-95">
-                                                        <span className="text-3xl">✓</span>
-                                                        <span className="text-sm font-medium text-green-600">Помню</span>
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            <p className="text-center text-sm text-gray-400">💡 Свайпните карточку или используйте кнопки</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                            );
-                        })()}
-                    </main>
-
-                    <footer className="text-center py-6 text-gray-400 text-sm">
-                        <p>汉字卡片 — Учите китайский с удовольствием 🎋</p>
-                    </footer>
-                </div>
-            );
-        }
-
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
-</body>
-</html>
-
-
-+++ index.html (修改后)
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汉字卡片 - Карточки для изучения китайского</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
-
-        function App() {
-            const [words, setWords] = useState(() => {
-                const saved = localStorage.getItem('chinese-words');
-                return saved ? JSON.parse(saved) : [];
-            });
-            const [mode, setMode] = useState('add');
-
-            // Add word form
-            const [chinese, setChinese] = useState('');
-            const [pinyin, setPinyin] = useState('');
-            const [translation, setTranslation] = useState('');
-
-            // Bulk add
-            const [bulkText, setBulkText] = useState('');
-            const [bulkPreview, setBulkPreview] = useState([]);
-            const [showExport, setShowExport] = useState(false);
-            const [copied, setCopied] = useState(false);
-
-            // Cards mode
-            const [cardQueue, setCardQueue] = useState([]);
-            const [cardIndex, setCardIndex] = useState(0);
-            const [isFlipped, setIsFlipped] = useState(false);
-            const [showPinyin, setShowPinyin] = useState(true);
-            const [knownCount, setKnownCount] = useState(0);
-            const [unknownCount, setUnknownCount] = useState(0);
-            const [swipeDirection, setSwipeDirection] = useState(null);
-            const [touchStart, setTouchStart] = useState(null);
-            const [touchDelta, setTouchDelta] = useState(0);
-
-            // Write mode
-            const [writeInput, setWriteInput] = useState('');
-            const [writeResult, setWriteResult] = useState(null);
-            const [showHint, setShowHint] = useState(false);
-            const [writeOrder, setWriteOrder] = useState([]);
-            const [writeIndex, setWriteIndex] = useState(0);
-            const [writeScore, setWriteScore] = useState(0);
-            const [writeTotal, setWriteTotal] = useState(0);
-            const [writeSwipeDirection, setWriteSwipeDirection] = useState(null);
-            const [writeTouchStart, setWriteTouchStart] = useState(null);
-            const [writeTouchDelta, setWriteTouchDelta] = useState(0);
-
-            const modeRef = useRef(mode);
-            const wordsLenRef = useRef(words.length);
-            const isFlippedRef = useRef(isFlipped);
-
-            useEffect(() => { modeRef.current = mode; }, [mode]);
-            useEffect(() => { wordsLenRef.current = words.length; }, [words.length]);
-            useEffect(() => { isFlippedRef.current = isFlipped; }, [isFlipped]);
-
-            useEffect(() => {
-                localStorage.setItem('chinese-words', JSON.stringify(words));
-            }, [words]);
-
-            const shuffleArray = (arr) => {
-                const result = [...arr];
-                for (let i = result.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [result[i], result[j]] = [result[j], result[i]];
-                }
-                return result;
-            };
-
-            useEffect(() => {
-                if (mode === 'write' && words.length > 0 && writeOrder.length === 0) {
-                    startWriteSession();
-                }
-                if (mode === 'cards' && words.length > 0 && cardQueue.length === 0) {
-                    startCardsSession();
-                }
-            }, [mode, words.length]);
-
-            const addWord = () => {
-                if (!chinese.trim() || !translation.trim()) return;
-                const newWord = {
-                    id: Date.now().toString(),
-                    chinese: chinese.trim(),
-                    pinyin: pinyin.trim(),
-                    translation: translation.trim(),
-                };
-                setWords([...words, newWord]);
-                setChinese('');
-                setPinyin('');
-                setTranslation('');
-            };
-
-            const deleteWord = (id) => {
-                setWords(words.filter(w => w.id !== id));
-            };
-
-            const parseBulkText = (text) => {
-                const lines = text.split('\n').filter(line => line.trim());
-                const parsed = [];
-
-                lines.forEach((line, idx) => {
-                    let parts = [];
-
-                    if (line.includes('\t')) {
-                        parts = line.split('\t').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' - ')) {
-                        parts = line.split(' - ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' = ')) {
-                        parts = line.split(' = ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(' → ')) {
-                        parts = line.split(' → ').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes('->')) {
-                        parts = line.split('->').map(s => s.trim()).filter(Boolean);
-                    } else if (line.includes(',')) {
-                        parts = line.split(',').map(s => s.trim()).filter(Boolean);
-                    } else {
-                        const trimmed = line.trim();
-                        const spaceIdx = trimmed.indexOf(' ');
-                        if (spaceIdx > 0) {
-                            parts = [trimmed.slice(0, spaceIdx), trimmed.slice(spaceIdx + 1).trim()];
-                        } else {
-                            parts = [trimmed];
-                        }
-                    }
-
-                    if (parts.length >= 2) {
-                        parsed.push({
-                            id: `bulk-${Date.now()}-${idx}`,
-                            chinese: parts[0],
-                            pinyin: parts.length >= 3 ? parts[1] : '',
-                            translation: parts.length >= 3 ? parts[2] : parts[1],
-                        });
-                    }
-                });
-
-                return parsed;
-            };
-
-            const handleBulkChange = (text) => {
-                setBulkText(text);
-                setBulkPreview(parseBulkText(text));
-            };
-
-            const addBulkWords = () => {
-                if (bulkPreview.length === 0) return;
-                setWords([...words, ...bulkPreview]);
-                setBulkText('');
-                setBulkPreview([]);
-            };
-
-            const startCardsSession = useCallback(() => {
-                const indices = Array.from({ length: words.length }, (_, i) => i);
-                setCardQueue(shuffleArray(indices));
-                setCardIndex(0);
-                setIsFlipped(false);
-                setKnownCount(0);
-                setUnknownCount(0);
-                setSwipeDirection(null);
-            }, [words.length]);
-
-            const swipeRight = useCallback(() => {
-                setSwipeDirection('right');
-                setTimeout(() => {
-                    setKnownCount(prev => prev + 1);
-                    setCardIndex(prev => prev + 1);
-                    setIsFlipped(false);
-                    setSwipeDirection(null);
-                }, 300);
-            }, []);
-
-            const swipeLeft = useCallback(() => {
-                setSwipeDirection('left');
-                setTimeout(() => {
-                    setUnknownCount(prev => prev + 1);
-                    const currentCardWordIndex = cardQueue[cardIndex];
-                    const newQueue = [...cardQueue.slice(0, cardIndex), ...cardQueue.slice(cardIndex + 1), currentCardWordIndex];
-                    setCardQueue(newQueue);
-                    setIsFlipped(false);
-                    setSwipeDirection(null);
-                }, 300);
-            }, [cardQueue, cardIndex]);
-
-            const startWriteSession = useCallback(() => {
-                const indices = Array.from({ length: words.length }, (_, i) => i);
-                setWriteOrder(shuffleArray(indices));
-                setWriteIndex(0);
-                setWriteInput('');
-                setWriteResult(null);
-                setShowHint(false);
-                setWriteScore(0);
-                setWriteTotal(0);
-                setWriteSwipeDirection(null);
-            }, [words.length]);
-
-            const checkWriteAnswer = () => {
-                if (!writeInput.trim() || writeOrder.length === 0) return;
-                const currentWord = words[writeOrder[writeIndex]];
-                if (!currentWord) return;
-                const isCorrect = writeInput.trim() === currentWord.chinese;
-                setWriteResult(isCorrect ? 'correct' : 'wrong');
-
-                // Автоматический свайп: вправо если правильно, влево если нет
-                setTimeout(() => {
-                    if (isCorrect) {
-                        writeSwipeRight();
-                    } else {
-                        writeSwipeLeft();
-                    }
-                }, 800);
-            };
-
-            const nextWrite = () => {
-                // Если ответ был неправильным, возвращаем слово в конец очереди
-                if (writeResult === 'wrong') {
-                    const currentWriteWordIndex = writeOrder[writeIndex];
-                    const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
-                    setWriteOrder(newWriteOrder);
-                }
-                setWriteInput('');
-                setWriteResult(null);
-                setShowHint(false);
-                // writeIndex не увеличивается, т.к. при неправильном ответе мы удалили текущий элемент
-                // и добавили в конец, поэтому следующий элемент автоматически становится текущим
-            };
-
-            const writeSwipeRight = useCallback(() => {
-                setWriteSwipeDirection('right');
-                setTimeout(() => {
-                    setWriteScore(prev => prev + 1);
-                    setWriteTotal(prev => prev + 1);
-                    setWriteIndex(prev => prev + 1);
-                    setWriteInput('');
-                    setWriteResult(null);
-                    setShowHint(false);
-                    setWriteSwipeDirection(null);
-                }, 300);
-            }, []);
-
-            const writeSwipeLeft = useCallback(() => {
-                setWriteSwipeDirection('left');
-                setTimeout(() => {
-                    const currentWriteWordIndex = writeOrder[writeIndex];
-                    const newWriteOrder = [...writeOrder.slice(0, writeIndex), ...writeOrder.slice(writeIndex + 1), currentWriteWordIndex];
-                    setWriteOrder(newWriteOrder);
-                    setWriteTotal(prev => prev + 1);
-                    setWriteInput('');
-                    setWriteResult(null);
-                    setShowHint(false);
-                    setWriteSwipeDirection(null);
-                }, 300);
-            }, [writeOrder, writeIndex]);
-
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if (modeRef.current === 'cards') {
-                        if (e.key === 'ArrowRight') swipeRight();
-                        if (e.key === 'ArrowLeft') swipeLeft();
-                        if (e.key === ' ') {
-                            e.preventDefault();
-                            setIsFlipped(!isFlippedRef.current);
-                        }
-                    }
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [swipeRight, swipeLeft]);
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
-                    <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-red-100 sticky top-0 z-10">
-                        <div className="max-w-4xl mx-auto px-4 py-4">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <h1 className="text-2xl font-bold text-red-700 flex items-center gap-2">
-                                    <span className="text-3xl">🀄</span>
-                                    <span>汉字卡片</span>
-                                </h1>
-                                <div className="flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1">
-                                    <button onClick={() => setMode('add')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'add' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✏️ Добавить</button>
-                                    <button onClick={() => { setMode('cards'); startCardsSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'cards' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>🃏 Карточки</button>
-                                    <button onClick={() => { setMode('write'); startWriteSession(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'write' ? 'bg-white shadow text-red-700' : 'text-gray-600 hover:text-red-600'}`}>✍️ Написать</button>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-4xl mx-auto px-4 py-8">
-                        {mode === 'add' && (
-                            <div className="space-y-6">
-                                <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Добавить слово</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Китайский иероглиф</label>
-                                            <input type="text" value={chinese} onChange={(e) => setChinese(e.target.value)} placeholder="例如: 你好" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-lg transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Пиньинь</label>
-                                            <input type="text" value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="nǐ hǎo" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600 mb-1">Перевод</label>
-                                            <input type="text" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="привет" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all" onKeyDown={(e) => e.key === 'Enter' && addWord()} />
-                                        </div>
-                                    </div>
-                                    <button onClick={addWord} disabled={!chinese.trim() || !translation.trim()} className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">Добавить карточку</button>
-                                </div>
-
-                                <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Массовый ввод</h2>
-                                    <p className="text-sm text-gray-500 mb-4">Вставьте список слов. Каждая строка — одно слово. Формат: <code className="bg-gray-100 px-1 rounded">иероглиф - пиньинь - перевод</code> или <code className="bg-gray-100 px-1 rounded">иероглиф - перевод</code></p>
-                                    <textarea value={bulkText} onChange={(e) => handleBulkChange(e.target.value)} placeholder={`你好 - nǐ hǎo - привет\n谢谢 - xiè xie - спасибо\n再见 - zài jiàn - до свидания\n学习 - xué xí - учиться`} rows={8} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all font-mono text-sm resize-y" />
-
-                                    {bulkPreview.length > 0 && (
-                                        <div className="mt-4">
-                                            <p className="text-sm font-medium text-gray-600 mb-2">Будет добавлено: {bulkPreview.length} слов</p>
-                                            <div className="max-h-40 overflow-y-auto space-y-1 mb-4">
-                                                {bulkPreview.map((w, i) => (
-                                                    <div key={i} className="flex items-center gap-3 text-sm p-2 bg-red-50 rounded-lg">
-                                                        <span className="font-bold text-red-700">{w.chinese}</span>
-                                                        {w.pinyin && <span className="text-gray-500 italic">{w.pinyin}</span>}
-                                                        <span className="text-gray-700">{w.translation}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <button onClick={addBulkWords} disabled={bulkPreview.length === 0} className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg">Добавить все ({bulkPreview.length})</button>
-                                </div>
-
-                                {words.length > 0 && (
-                                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-red-100">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h2 className="text-xl font-semibold text-gray-800">Ваши слова ({words.length})</h2>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => { if (window.confirm('Удалить все слова? Это действие нельзя отменить.')) { setWords([]); setCardQueue([]); setWriteOrder([]); } }} className="px-4 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-all flex items-center gap-2">🗑️ Удалить все</button>
-                                                <button onClick={() => setShowExport(!showExport)} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all flex items-center gap-2">{showExport ? '🙈 Скрыть' : '📋 Экспорт'}</button>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {words.map((word) => (
-                                                <div key={word.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-red-50 transition-all group">
-                                                    <div className="flex items-center gap-4 flex-wrap">
-                                                        <span className="text-2xl font-bold text-red-700">{word.chinese}</span>
-                                                        {word.pinyin && <span className="text-sm text-gray-500 italic">{word.pinyin}</span>}
-                                                        <span className="text-gray-700">{word.translation}</span>
-                                                    </div>
-                                                    <button onClick={() => deleteWord(word.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all p-2 text-lg">✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {showExport && (
-                                            <div className="mt-6 pt-6 border-t border-gray-200">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <p className="text-sm font-medium text-gray-600">Текст для импорта/бэкапа:</p>
-                                                    <button onClick={() => {
-                                                        const exportText = words.map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`).join('\n');
-                                                        navigator.clipboard.writeText(exportText);
-                                                        setCopied(true);
-                                                        setTimeout(() => setCopied(false), 2000);
-                                                    }} className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all">{copied ? '✓ Скопировано!' : '📋 Копировать'}</button>
-                                                </div>
-                                                <textarea readOnly value={words.map(w => w.pinyin ? `${w.chinese} - ${w.pinyin} - ${w.translation}` : `${w.chinese} - ${w.translation}`).join('\n')} rows={8} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-mono text-sm resize-y" onClick={(e) => e.target.select()} />
-                                                <p className="text-xs text-gray-400 mt-2">💡 Скопируйте этот текст для бэкапа или переноса на другое устройство</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {words.length === 0 && (
-                                    <div className="text-center py-12 text-gray-400">
-                                        <div className="text-6xl mb-4">📝</div>
-                                        <p className="text-lg">Добавьте первое китайское слово для изучения!</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {mode === 'cards' && (() => {
-                            const isFinished = cardIndex >= cardQueue.length;
-                            const currentCardWord = !isFinished && cardQueue.length > 0 ? words[cardQueue[cardIndex]] : null;
-
-                            return (
-                                <div className="space-y-6">
-                                    {words.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="text-6xl mb-4">🃏</div>
-                                            <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-                                        </div>
-                                    ) : isFinished ? (
-                                        <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                                            <div className="text-6xl mb-4">🎉</div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Раунд завершён!</h2>
-                                            <p className="text-gray-500 mb-6">Все карточки пройдены</p>
-                                            <div className="flex justify-center gap-8 mb-8">
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-green-600">{knownCount}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Помню ✓</div>
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-orange-500">{unknownCount}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Повторить ↩</div>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-                                                <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${((knownCount) / (knownCount + unknownCount)) * 100}%` }}></div>
-                                            </div>
-                                            <button onClick={startCardsSession} className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Начать заново 🔄</button>
-                                        </div>
-                                    ) : currentCardWord ? (
-                                        <>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-500 text-sm">Осталось: {cardQueue.length - cardIndex}</span>
-                                                <div className="flex gap-3 text-sm">
-                                                    <span className="text-green-600 font-medium">✓ {knownCount}</span>
-                                                    <span className="text-orange-500 font-medium">↩ {unknownCount}</span>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(cardIndex / cardQueue.length) * 100}%` }}></div>
-                                            </div>
-                                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                                                <input type="checkbox" checked={showPinyin} onChange={(e) => setShowPinyin(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
-                                                Показывать пиньинь
-                                            </label>
-                                            <div className="relative" onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchMove={(e) => { if (touchStart !== null) setTouchDelta(e.touches[0].clientX - touchStart); }} onTouchEnd={() => { if (touchDelta > 80) swipeRight(); else if (touchDelta < -80) swipeLeft(); setTouchStart(null); setTouchDelta(0); }} onClick={() => setIsFlipped(!isFlipped)} style={{ perspective: '1000px' }}>
-                                                <div className="relative w-full h-80 transition-all duration-300 cursor-pointer" style={{ transformStyle: 'preserve-3d', transform: `${isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'} ${swipeDirection === 'left' ? 'translateX(-150%) rotate(-15deg)' : ''} ${swipeDirection === 'right' ? 'translateX(150%) rotate(15deg)' : ''} ${!swipeDirection && touchDelta !== 0 ? `translateX(${touchDelta}px) rotate(${touchDelta * 0.05}deg)` : ''}`, transition: swipeDirection ? 'transform 0.3s ease-out' : (touchDelta !== 0 ? 'none' : 'transform 0.5s'), opacity: swipeDirection ? 0 : 1 }}>
-                                                    <div className="absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-red-100 flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: 'hidden' }}>
-                                                        <div className="text-3xl font-bold text-gray-800 text-center mb-4">{currentCardWord.translation}</div>
-                                                        <div className="absolute bottom-4 text-sm text-gray-400">Нажмите, чтобы увидеть иероглиф</div>
-                                                    </div>
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl shadow-xl flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                                                        <div className="text-6xl font-bold text-white mb-4">{currentCardWord.chinese}</div>
-                                                        {showPinyin && currentCardWord.pinyin && <div className="text-xl text-red-100 italic">{currentCardWord.pinyin}</div>}
-                                                        <div className="absolute bottom-4 text-sm text-red-200">Нажмите, чтобы вернуться</div>
-                                                    </div>
-                                                </div>
-                                                {touchDelta > 30 && <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">✓ Помню</div>}
-                                                {touchDelta < -30 && <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">↩ Не помню</div>}
-                                            </div>
-                                            <div className="flex justify-center gap-6">
-                                                <button onClick={(e) => { e.stopPropagation(); swipeLeft(); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-orange-200 hover:border-orange-400 active:scale-95">
-                                                    <span className="text-3xl">↩️</span>
-                                                    <span className="text-sm font-medium text-orange-600">Не помню</span>
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-red-600 text-white rounded-2xl shadow-md hover:shadow-lg transition-all hover:bg-red-700 active:scale-95">
-                                                    <span className="text-3xl">🔄</span>
-                                                    <span className="text-sm font-medium">Перевернуть</span>
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); swipeRight(); }} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400 active:scale-95">
-                                                    <span className="text-3xl">✓</span>
-                                                    <span className="text-sm font-medium text-green-600">Помню</span>
-                                                </button>
-                                            </div>
-                                            <p className="text-center text-sm text-gray-400">💡 Свайпните карточку или используйте кнопки. ← → на клавиатуре</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                            );
-                        })()}
-
-                        {mode === 'write' && (() => {
-                            const isWriteFinished = writeIndex >= writeOrder.length;
-                            const currentWord = !isWriteFinished && writeOrder.length > 0 ? words[writeOrder[writeIndex]] : null;
-
-                            return (
-                                <div className="space-y-6">
-                                    {words.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <div className="text-6xl mb-4">✍️</div>
-                                            <p className="text-lg">Сначала добавьте слова во вкладке "Добавить"</p>
-                                        </div>
-                                    ) : isWriteFinished ? (
-                                        <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center">
-                                            <div className="text-6xl mb-4">🎉</div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Все иероглифы выучены!</h2>
-                                            <p className="text-gray-500 mb-6">Поздравляем! Вы прошли все слова</p>
-
-                                            <div className="flex justify-center gap-8 mb-8">
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-green-600">{writeScore}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Правильно ✓</div>
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className="text-4xl font-bold text-orange-500">{writeTotal - writeScore}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">Ошибок ✗</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-                                                <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${(writeScore / writeTotal) * 100}%` }}></div>
-                                            </div>
-
-                                            <button onClick={startWriteSession} className="px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md">Начать заново 🔄</button>
-                                        </div>
-                                    ) : currentWord ? (
-                                        <>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-500 text-sm">Осталось: {writeOrder.length - writeIndex}</span>
-                                                <div className="flex gap-3 text-sm">
-                                                    <span className="text-green-600 font-medium">✓ {writeScore}</span>
-                                                    <span className="text-orange-500 font-medium">↩ {writeTotal - writeScore}</span>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(writeIndex / writeOrder.length) * 100}%` }}></div>
-                                            </div>
-
-                                            <div className="relative"
-                                                onTouchStart={(e) => setWriteTouchStart(e.touches[0].clientX)}
-                                                onTouchMove={(e) => { if (writeTouchStart !== null && !writeResult) setWriteTouchDelta(e.touches[0].clientX - writeTouchStart); }}
-                                                onTouchEnd={() => {
-                                                    if (!writeResult) {
-                                                        if (writeTouchDelta > 80) writeSwipeRight();
-                                                        else if (writeTouchDelta < -80) writeSwipeLeft();
-                                                    }
-                                                    setWriteTouchStart(null);
-                                                    setWriteTouchDelta(0);
-                                                }}
-                                                style={{ perspective: '1000px' }}
-                                            >
-                                                <div className="bg-white rounded-3xl shadow-xl border-2 border-red-100 p-8 text-center transition-all duration-300"
-                                                    style={{
-                                                        transform: `${writeSwipeDirection === 'left' ? 'translateX(-150%) rotate(-15deg)' : ''} ${writeSwipeDirection === 'right' ? 'translateX(150%) rotate(15deg)' : ''} ${!writeSwipeDirection && writeTouchDelta !== 0 ? `translateX(${writeTouchDelta}px) rotate(${writeTouchDelta * 0.05}deg)` : ''}`,
-                                                        transition: writeSwipeDirection ? 'transform 0.3s ease-out' : (writeTouchDelta !== 0 ? 'none' : 'transform 0.5s'),
-                                                        opacity: writeSwipeDirection ? 0 : 1
-                                                    }}
-                                                >
-                                                    <p className="text-gray-500 mb-2">Напишите иероглиф:</p>
-                                                    <div className="text-4xl font-bold text-red-700 mb-6">{currentWord.translation}</div>
-                                                    <div className="max-w-md mx-auto">
-                                                        <input type="text" value={writeInput} onChange={(e) => setWriteInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { if (writeResult) nextWrite(); else checkWriteAnswer(); } }} placeholder="Введите иероглиф..." disabled={writeResult !== null} className="w-full px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-3xl text-center transition-all disabled:bg-gray-50" autoFocus />
-                                                    </div>
-                                                    {currentWord.pinyin && !writeResult && (
-                                                        <div className="mt-4">
-                                                            {!showHint ? (
-                                                                <button onClick={() => setShowHint(true)} className="px-4 py-2 text-sm text-gray-500 hover:text-red-600 transition-all underline">💡 Подсказка (пиньинь)</button>
-                                                            ) : (
-                                                                <div className="inline-block px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl">
-                                                                    <span className="text-lg text-yellow-700 italic">{currentWord.pinyin}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                    {writeResult && (
-                                                        <div className={`mt-4 p-4 rounded-xl ${writeResult === 'correct' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                                            {writeResult === 'correct' ? <p className="font-medium">✅ Правильно!</p> : <p className="font-medium">❌ Неправильно. Правильный ответ: <strong className="text-2xl">{currentWord.chinese}</strong>{currentWord.pinyin && <span className="block text-sm mt-1 text-gray-600 italic">{currentWord.pinyin}</span>}</p>}
-                                                        </div>
-                                                    )}
-                                                    {!writeResult && (
-                                                        <button onClick={checkWriteAnswer} disabled={!writeInput.trim()} className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md">Проверить</button>
-                                                    )}
-                                                </div>
-
-                                                {writeTouchDelta > 30 && !writeResult && (
-                                                    <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">✓ Помню</div>
-                                                )}
-                                                {writeTouchDelta < -30 && !writeResult && (
-                                                    <div className="absolute top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-pulse">↩ Не помню</div>
-                                                )}
-                                            </div>
-
-                                            {!writeResult && (
-                                                <div className="flex justify-center gap-6">
-                                                    <button onClick={writeSwipeLeft} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-orange-200 hover:border-orange-400 active:scale-95">
-                                                        <span className="text-3xl">↩️</span>
-                                                        <span className="text-sm font-medium text-orange-600">Не помню</span>
-                                                    </button>
-                                                    <button onClick={writeSwipeRight} className="flex flex-col items-center gap-1 px-6 py-4 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400 active:scale-95">
-                                                        <span className="text-3xl">✓</span>
-                                                        <span className="text-sm font-medium text-green-600">Помню</span>
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            <p className="text-center text-sm text-gray-400">💡 Свайпните карточку или используйте кнопки</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                            );
-                        })()}
-                    </main>
-
-                    <footer className="text-center py-6 text-gray-400 text-sm">
-                        <p>汉字卡片 — Учите китайский с удовольствием 🎋</p>
-                    </footer>
-                </div>
-            );
-        }
-
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
+<header>
+  <div class="head-in">
+    <h1><span class="zh">汉字卡片</span></h1>
+    <div class="tabs" role="tablist" aria-label="Режимы" id="tabs"></div>
+  </div>
+</header>
+<main id="app"></main>
+<footer>Слова хранятся только в вашем браузере. Сделайте резервную копию в разделе «Добавить» → «Экспорт».</footer>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+
+// ---------- утилиты ----------
+var LS_WORDS = 'chinese-words';
+var LS_SET = 'chinese-words-settings';
+var TABS = [['add', '✏️ Добавить'], ['cards', '🃏 Карточки'], ['write', '✍️ Написать']];
+
+function $(s, r) { return (r || document).querySelector(s); }
+
+// Мини-хелпер для DOM. Весь пользовательский текст идёт только через textContent/TextNode — без innerHTML.
+function h(tag, props) {
+  var e = document.createElement(tag);
+  var after = [];
+  if (props) {
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k === 'value' || k === 'checked') after.push([k, v]);
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else e.setAttribute(k, v);
+    });
+  }
+  for (var i = 2; i < arguments.length; i++) append(e, arguments[i]);
+  after.forEach(function (p) { e[p[0]] = p[1]; });
+  return e;
+}
+function append(e, c) {
+  if (c == null || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { append(e, x); }); return; }
+  e.append(c.nodeType ? c : document.createTextNode(String(c)));
+}
+
+function storeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+var warnedStore = false;
+function storeSet(k, v) {
+  try { localStorage.setItem(k, v); return true; }
+  catch (e) {
+    if (!warnedStore) { warnedStore = true; toast('Не удалось сохранить: браузер блокирует хранилище (приватный режим?)'); }
+    return false;
+  }
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function shuffle(a) {
+  a = a.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+function hasHan(s) { return /[\u3400-\u9fff\uf900-\ufaff]/.test(s); }
+function looksLikePinyin(s) { return /[a-z]/i.test(s) && /^[a-zA-ZüÜāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ'’·\s1-5-]+$/.test(s); }
+function plural(n, one, few, many) {
+  var m = Math.abs(n) % 100, d = m % 10;
+  if (m > 10 && m < 20) return many;
+  if (d > 1 && d < 5) return few;
+  if (d === 1) return one;
+  return many;
+}
+function autoPinyin(zh) {
+  try {
+    if (window.pinyinPro && hasHan(zh)) return window.pinyinPro.pinyin(zh, { toneType: 'symbol' });
+  } catch (e) {}
+  return '';
+}
+var canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+function speak(text) {
+  if (!canSpeak) return;
+  try {
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.85;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function toast(msg, action) {
+  var t = h('div', { class: 'toast' }, h('span', { text: msg }));
+  if (action) t.append(h('button', { class: 'toast-btn', onclick: function () { action.fn(); t.remove(); } }, action.label));
+  $('#toasts').append(t);
+  setTimeout(function () { t.remove(); }, action ? 6000 : 2600);
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
+  }
+  return Promise.resolve(legacyCopy(text));
+}
+function legacyCopy(text) {
+  var ta = h('textarea', { style: 'position:fixed;opacity:0' });
+  ta.value = text; document.body.append(ta); ta.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  ta.remove();
+  return ok;
+}
+function download(name, text, type) {
+  var url = URL.createObjectURL(new Blob([text], { type: type + ';charset=utf-8' }));
+  var a = h('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+// ---------- данные ----------
+function loadWords() {
+  var raw;
+  try { raw = JSON.parse(storeGet(LS_WORDS) || '[]'); } catch (e) { raw = []; }
+  if (!Array.isArray(raw)) return [];
+  var seen = {};
+  return raw.filter(function (w) { return w && typeof w.chinese === 'string' && w.chinese.trim(); }).map(function (w) {
+    var id = w.id != null ? String(w.id) : uid();
+    while (seen[id]) id = uid();
+    seen[id] = 1;
+    return { id: id, chinese: w.chinese.trim(), pinyin: String(w.pinyin || ''), translation: String(w.translation || '') };
+  });
+}
+var words = loadWords();
+function saveWords() { storeSet(LS_WORDS, JSON.stringify(words)); }
+
+var settings = { showPinyin: true, side: 'tr', tab: 'add', autoPinyin: true };
+try { Object.assign(settings, JSON.parse(storeGet(LS_SET) || '{}')); } catch (e) {}
+if (!TABS.some(function (t) { return t[0] === settings.tab; })) settings.tab = 'add';
+if (settings.side !== 'tr' && settings.side !== 'zh') settings.side = 'tr';
+function saveSettings() { storeSet(LS_SET, JSON.stringify(settings)); }
+
+function wordMap() { var m = {}; words.forEach(function (w) { m[w.id] = w; }); return m; }
+function sig() { return words.map(function (w) { return w.id; }).join('|'); }
+function dupKey(w) { return (w.chinese + '|' + w.translation).toLowerCase(); }
+
+// Разбор массового ввода. Разделитель — первый найденный из списка (как раньше), дальше по позиции:
+// иероглифы | пиньинь | перевод. Если вторая часть не похожа на пиньинь — это начало перевода.
+var DELIMS = ['\t', ' - ', ' = ', ' → ', '->', ',', '，', ' — ', ';', '；'];
+function splitLine(line) {
+  for (var i = 0; i < DELIMS.length; i++) {
+    if (line.indexOf(DELIMS[i]) !== -1) return line.split(DELIMS[i]).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  var m = line.search(/\s/);
+  if (m < 0) return [line];
+  return [line.slice(0, m), line.slice(m + 1).trim()].filter(Boolean);
+}
+function parseBulkText(text) {
+  var rows = [], skipped = 0;
+  text.split(/\r?\n/).forEach(function (raw) {
+    var line = raw.trim();
+    if (!line) return;
+    var p = splitLine(line);
+    if (p.length < 2) { skipped++; return; }
+    var row;
+    if (p.length === 2) row = { chinese: p[0], pinyin: '', translation: p[1] };
+    else if (looksLikePinyin(p[1])) row = { chinese: p[0], pinyin: p[1], translation: p.slice(2).join(', ') };
+    else row = { chinese: p[0], pinyin: '', translation: p.slice(1).join(', ') };
+    row.warn = !hasHan(row.chinese);
+    rows.push(row);
+  });
+  return { rows: rows, skipped: skipped };
+}
+function exportText() {
+  return words.map(function (w) {
+    return w.pinyin ? w.chinese + ' - ' + w.pinyin + ' - ' + w.translation : w.chinese + ' - ' + w.translation;
+  }).join('\n');
+}
+// Добавляет слова, пропуская дубликаты (иероглифы + перевод). Возвращает {added, dup}
+function addWords(rows, fill) {
+  var keys = {};
+  words.forEach(function (w) { keys[dupKey(w)] = 1; });
+  var added = 0, dup = 0;
+  rows.forEach(function (r) {
+    var w = { id: uid(), chinese: r.chinese.trim(), pinyin: (r.pinyin || '').trim(), translation: r.translation.trim() };
+    if (!w.chinese || !w.translation) return;
+    if (!w.pinyin && fill) w.pinyin = autoPinyin(w.chinese);
+    var k = dupKey(w);
+    if (keys[k]) { dup++; return; }
+    keys[k] = 1; words.push(w); added++;
+  });
+  if (added) saveWords();
+  return { added: added, dup: dup };
+}
+
+// ---------- каркас и вкладки ----------
+var view = $('#app');
+var ui = {};
+
+function buildTabs() {
+  var box = $('#tabs');
+  box.replaceChildren();
+  TABS.forEach(function (t) {
+    box.append(h('button', {
+      class: 'tab', role: 'tab', id: 'tab-' + t[0], 'aria-selected': String(settings.tab === t[0]),
+      onclick: function () { show(t[0]); }
+    }, t[1]));
+  });
+}
+var current = null;
+function show(tab) {
+  if (tab === current) return;
+  current = tab;
+  settings.tab = tab; saveSettings();
+  clearTimeout(wr.timer);
+  document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.id === 'tab-' + tab)); });
+  ui = {};
+  if (tab === 'add') view.replaceChildren(buildAdd());
+  else if (tab === 'cards') drawCards();
+  else drawWrite();
+  if (tab === 'add') renderList();
+}
+function empty(text) {
+  return h('div', { class: 'panel empty' },
+    h('p', { text: text }),
+    h('p', null, h('button', { class: 'btn', style: 'margin-top:14px', onclick: function () { show('add'); } }, '✏️ Добавить слова')));
+}
+
+// ---------- вкладка «Добавить» ----------
+function buildAdd() {
+  var root = h('div');
+
+  // одно слово
+  var fZh = h('input', { type: 'text', id: 'inZh', class: 'zh', lang: 'zh', autocomplete: 'off', required: true });
+  var fPy = h('input', { type: 'text', id: 'inPy', autocomplete: 'off', autocapitalize: 'off' });
+  var fTr = h('input', { type: 'text', id: 'inTr', autocomplete: 'off', required: true });
+  var btnAuto = h('button', { type: 'button', class: 'btn ghost sm', title: 'Подставить пиньинь автоматически', onclick: function () {
+    var py = autoPinyin(fZh.value.trim());
+    if (py) { fPy.value = py; }
+    else toast(window.pinyinPro ? 'Сначала введите иероглифы' : 'Автопиньинь недоступен (нет доступа к библиотеке)');
+  } }, 'Авто');
+  var form = h('form', { class: 'panel', onsubmit: function (e) {
+    e.preventDefault();
+    var zh = fZh.value.trim(), tr = fTr.value.trim();
+    if (!zh || !tr) { toast('Заполните иероглифы и перевод'); return; }
+    var res = addWords([{ chinese: zh, pinyin: fPy.value, translation: tr }], settings.autoPinyin);
+    if (!res.added) { toast('Такое слово уже есть'); return; }
+    toast('Добавлено: ' + zh);
+    fZh.value = ''; fPy.value = ''; fTr.value = '';
+    fZh.focus(); renderList();
+  } },
+    h('h2', null, 'Добавить карточку'),
+    h('div', { class: 'grid3' },
+      h('div', { class: 'field' }, h('label', { for: 'inZh' }, 'Иероглифы'), fZh),
+      h('div', { class: 'field' }, h('label', { for: 'inPy' }, 'Пиньинь (необязательно)'), h('div', { class: 'with-btn' }, fPy, btnAuto)),
+      h('div', { class: 'field' }, h('label', { for: 'inTr' }, 'Перевод'), fTr)),
+    h('div', { class: 'row' },
+      h('button', { type: 'submit', class: 'btn' }, 'Добавить'),
+      h('label', { class: 'row', style: 'font-size:.9rem' },
+        h('input', { type: 'checkbox', checked: settings.autoPinyin, onchange: function (e) { settings.autoPinyin = e.target.checked; saveSettings(); } }),
+        'Подставлять пиньинь, если не указан')));
+  root.append(form);
+
+  // массовый ввод
+  var ta = h('textarea', { id: 'bulk', lang: 'zh', placeholder: '你好 - nǐ hǎo - привет\n谢谢 - спасибо\n再见,zàijiàn,до свидания' });
+  var prev = h('div', { class: 'preview', hidden: true });
+  var btnBulk = h('button', { type: 'button', class: 'btn', disabled: true }, 'Добавить все');
+  var lastParsed = { rows: [], skipped: 0 };
+  function updPreview() {
+    lastParsed = parseBulkText(ta.value);
+    var rows = lastParsed.rows;
+    prev.hidden = !ta.value.trim();
+    prev.replaceChildren();
+    rows.slice(0, 30).forEach(function (r) {
+      prev.append(h('div', { class: 'pr' },
+        h('span', { class: 'zh' + (r.warn ? ' warn' : ''), text: (r.warn ? '⚠ ' : '') + r.chinese }),
+        h('span', { text: r.pinyin || '—' }),
+        h('span', { text: r.translation })));
+    });
+    if (rows.length > 30) prev.append(h('div', { class: 'hint', text: 'и ещё ' + (rows.length - 30) + '…' }));
+    if (lastParsed.skipped) prev.append(h('div', { class: 'hint warn', text: 'Пропущено строк без разделителя: ' + lastParsed.skipped }));
+    if (rows.some(function (r) { return r.warn; })) prev.append(h('div', { class: 'hint warn', text: '⚠ — в первой части нет иероглифов, проверьте порядок колонок.' }));
+    btnBulk.disabled = !rows.length;
+    btnBulk.textContent = 'Добавить все (' + rows.length + ')';
+  }
+  ta.addEventListener('input', updPreview);
+  btnBulk.addEventListener('click', function () {
+    var res = addWords(lastParsed.rows, settings.autoPinyin);
+    var msg = 'Добавлено: ' + res.added;
+    if (res.dup) msg += ', дубликатов пропущено: ' + res.dup;
+    toast(msg);
+    if (res.added) { ta.value = ''; updPreview(); renderList(); }
+  });
+  root.append(h('div', { class: 'panel' },
+    h('h2', null, 'Массовый ввод'),
+    h('p', { class: 'hint', style: 'margin:-6px 0 10px' }, 'По слову в строке: «иероглифы - пиньинь - перевод» или «иероглифы - перевод». Подойдут табуляция, « - », « = », « → », «->» и запятая. Надёжнее всего табуляция или « - ».'),
+    ta, prev, h('div', { class: 'row', style: 'margin-top:10px' }, btnBulk)));
+
+  // список
+  ui.title = h('h2', { text: 'Ваши слова' });
+  ui.search = h('input', { type: 'search', placeholder: 'Поиск по словам…', 'aria-label': 'Поиск', oninput: renderList });
+  ui.list = h('div');
+  ui.exportBox = h('div', { hidden: true });
+  ui.exportTa = h('textarea', { readonly: true, 'aria-label': 'Экспорт слов', style: 'min-height:140px' });
+  var btnCopy = h('button', { class: 'btn ghost sm', onclick: function () {
+    copyText(exportText()).then(function (ok) {
+      btnCopy.textContent = ok ? '✓ Скопировано!' : 'Не удалось скопировать';
+      setTimeout(function () { btnCopy.textContent = '📋 Копировать'; }, 2000);
+    });
+  } }, '📋 Копировать');
+  ui.exportBox.append(
+    ui.exportTa,
+    h('div', { class: 'row', style: 'margin-top:8px' },
+      btnCopy,
+      h('button', { class: 'btn ghost sm', onclick: function () { download('hanzi-words.txt', exportText(), 'text/plain'); } }, '⬇️ .txt'),
+      h('button', { class: 'btn ghost sm', onclick: function () { download('hanzi-backup.json', JSON.stringify(words, null, 2), 'application/json'); } }, '⬇️ Резервная копия .json')));
+  var fileIn = h('input', { type: 'file', accept: '.txt,.json,.csv,.tsv,text/plain,application/json', hidden: true, onchange: function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () { importFileText(String(rd.result), f.name); fileIn.value = ''; };
+    rd.onerror = function () { toast('Не удалось прочитать файл'); };
+    rd.readAsText(f);
+  } });
+  ui.exportBtn = h('button', { class: 'btn ghost sm', onclick: function () {
+    ui.exportBox.hidden = !ui.exportBox.hidden;
+    ui.exportBtn.textContent = ui.exportBox.hidden ? '📋 Экспорт' : '🙈 Скрыть';
+    ui.exportTa.value = exportText();
+  } }, '📋 Экспорт');
+  var btnClear = h('button', { class: 'btn danger sm', onclick: function () {
+    if (!words.length) return;
+    if (!confirm('Удалить все слова? Это действие нельзя отменить.')) return;
+    var backup = words; words = []; saveWords(); renderList();
+    toast('Все слова удалены', { label: 'Отменить', fn: function () { words = backup; saveWords(); if (settings.tab === 'add') renderList(); } });
+  } }, '🗑️ Удалить все');
+  root.append(h('div', { class: 'panel' },
+    h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:10px' },
+      ui.title,
+      h('div', { class: 'row' }, ui.exportBtn, h('button', { class: 'btn ghost sm', onclick: function () { fileIn.click(); } }, '⬆️ Импорт из файла'), fileIn, btnClear)),
+    ui.exportBox,
+    h('div', { style: 'margin:12px 0' }, ui.search),
+    ui.list));
+  return root;
+}
+
+function importFileText(text, name) {
+  var rows = null;
+  if (/\.json$/i.test(name) || /^\s*\[/.test(text)) {
+    try {
+      var arr = JSON.parse(text);
+      if (Array.isArray(arr)) {
+        rows = arr.filter(function (w) { return w && w.chinese; }).map(function (w) {
+          return { chinese: String(w.chinese), pinyin: String(w.pinyin || ''), translation: String(w.translation || '') };
+        });
+      }
+    } catch (e) {}
+    if (!rows) { toast('Не удалось разобрать JSON'); return; }
+  } else {
+    rows = parseBulkText(text).rows;
+  }
+  if (!rows.length) { toast('В файле не найдено слов'); return; }
+  var res = addWords(rows, false);
+  toast('Импорт: добавлено ' + res.added + (res.dup ? ', дубликатов пропущено: ' + res.dup : ''));
+  if (settings.tab === 'add') renderList();
+}
+
+var editingId = null, focusEdit = false;
+function renderList() {
+  if (!ui.list) return;
+  var q = ui.search.value.trim().toLowerCase();
+  var items = words.filter(function (w) {
+    return !q || [w.chinese, w.pinyin, w.translation].some(function (s) { return s.toLowerCase().indexOf(q) !== -1; });
+  }).reverse();
+  ui.title.textContent = 'Ваши слова (' + words.length + ')';
+  ui.list.replaceChildren();
+  if (!items.length) {
+    ui.list.append(h('div', { class: 'empty', text: words.length ? 'Ничего не найдено' : 'Пока нет слов. Добавьте первое выше 👆' }));
+  } else {
+    items.slice(0, 300).forEach(function (w) { ui.list.append(w.id === editingId ? editRow(w) : wordRow(w)); });
+    if (items.length > 300) ui.list.append(h('div', { class: 'hint', style: 'text-align:center;padding:8px', text: 'Показаны первые 300 — уточните поиск.' }));
+  }
+  if (!ui.exportBox.hidden) ui.exportTa.value = exportText();
+}
+function wordRow(w) {
+  return h('div', { class: 'word-row', 'data-id': w.id },
+    h('div', { class: 'w-zh', text: w.chinese }),
+    h('div', { class: 'w-mid' },
+      w.pinyin ? h('div', { class: 'w-py', text: w.pinyin }) : null,
+      h('div', { class: 'w-tr', text: w.translation })),
+    h('div', { class: 'w-btns' },
+      canSpeak ? h('button', { class: 'icon-btn', 'aria-label': 'Озвучить', title: 'Озвучить', onclick: function () { speak(w.chinese); } }, '🔊') : null,
+      h('button', { class: 'icon-btn', 'aria-label': 'Изменить', title: 'Изменить', onclick: function () { editingId = w.id; focusEdit = true; renderList(); } }, '✏️'),
+      h('button', { class: 'icon-btn', 'aria-label': 'Удалить', title: 'Удалить', onclick: function () { removeWord(w.id); } }, '🗑️')));
+}
+function editRow(w) {
+  var a = h('input', { type: 'text', class: 'zh', value: w.chinese, 'aria-label': 'Иероглифы' });
+  var b = h('input', { type: 'text', value: w.pinyin, 'aria-label': 'Пиньинь' });
+  var c = h('input', { type: 'text', value: w.translation, 'aria-label': 'Перевод' });
+  function save() {
+    var zh = a.value.trim(), tr = c.value.trim();
+    if (!zh || !tr) { toast('Иероглифы и перевод обязательны'); return; }
+    w.chinese = zh; w.pinyin = b.value.trim(); w.translation = tr;
+    editingId = null; saveWords(); renderList();
+  }
+  [a, b, c].forEach(function (i) { i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { editingId = null; renderList(); } }); });
+  if (focusEdit) { focusEdit = false; setTimeout(function () { a.focus(); }, 0); }
+  return h('div', { class: 'word-row edit' }, a, b, c,
+    h('button', { class: 'btn sm', onclick: save }, 'Сохранить'),
+    h('button', { class: 'btn ghost sm', onclick: function () { editingId = null; renderList(); } }, 'Отмена'));
+}
+function removeWord(id) {
+  var i = words.findIndex(function (w) { return w.id === id; });
+  if (i < 0) return;
+  var w = words.splice(i, 1)[0];
+  saveWords(); renderList();
+  toast('Удалено: ' + w.chinese, { label: 'Отменить', fn: function () {
+    words.splice(Math.min(i, words.length), 0, w); saveWords(); if (settings.tab === 'add') renderList();
+  } });
+}
+
+// ---------- вкладка «Карточки» ----------
+var cards = { sig: null, queue: [], idx: 0, known: 0, unknown: 0, flipped: false, busy: false };
+function resetCards() {
+  cards.sig = sig(); cards.queue = shuffle(words.map(function (w) { return w.id; }));
+  cards.idx = 0; cards.known = 0; cards.unknown = 0; cards.flipped = false; cards.busy = false;
+}
+function drawCards() {
+  if (!words.length) { view.replaceChildren(empty('Добавьте слова, чтобы начать учить карточки.')); return; }
+  if (cards.sig !== sig()) resetCards();
+  view.replaceChildren(buildCards());
+}
+function buildCards() {
+  var root = h('div');
+  var toolbar = h('div', { class: 'toolbar panel', style: 'padding:12px 16px' },
+    h('label', null,
+      h('input', { type: 'checkbox', checked: settings.showPinyin, onchange: function (e) { settings.showPinyin = e.target.checked; saveSettings(); drawCards(); } }),
+      'Показывать пиньинь'),
+    h('label', null, 'Сначала показывать:',
+      h('select', { value: settings.side, 'aria-label': 'Сторона карточки', onchange: function (e) { settings.side = e.target.value; saveSettings(); cards.flipped = false; drawCards(); } },
+        h('option', { value: 'tr' }, 'перевод'), h('option', { value: 'zh' }, 'иероглиф'))));
+  root.append(toolbar);
+
+  var total = cards.queue.length;
+  if (cards.idx >= total) {
+    root.append(h('div', { class: 'panel done' },
+      h('div', { style: 'font-size:3rem' }, '🎉'),
+      h('h2', null, 'Раунд завершён!'),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat ok' }, h('b', { text: String(cards.known) }), h('span', null, 'Помню ✓')),
+        h('div', { class: 'stat bad' }, h('b', { text: String(cards.unknown) }), h('span', null, 'Повторить ↩'))),
+      h('button', { class: 'btn', onclick: function () { resetCards(); drawCards(); } }, 'Начать заново 🔄')));
+    return root;
+  }
+
+  var w = wordMap()[cards.queue[cards.idx]];
+  var sideZh = settings.side === 'zh';
+  function py() { return w.pinyin ? h('div', { class: 'py', text: w.pinyin }) : null; }
+  function speakBtn() {
+    return canSpeak ? h('button', { class: 'speak', 'aria-label': 'Озвучить', onclick: function (e) { e.stopPropagation(); speak(w.chinese); } }, '🔊') : null;
+  }
+  var zhFace = [h('div', { class: 'big zh', text: w.chinese }), speakBtn()];
+  var front, back;
+  if (!sideZh) {
+    front = [h('div', { class: 'lab' }, 'Перевод'), h('div', { class: 'big', text: w.translation })];
+    back = [h('div', { class: 'lab' }, 'Иероглиф'), zhFace, settings.showPinyin ? py() : null];
+  } else {
+    front = [h('div', { class: 'lab' }, 'Иероглиф'), zhFace, settings.showPinyin ? py() : null];
+    back = [h('div', { class: 'lab' }, 'Перевод'), h('div', { class: 'big', text: w.translation }), py()];
+  }
+  var f = h('div', { class: 'face front', 'aria-hidden': String(cards.flipped) }, front);
+  var b = h('div', { class: 'face back', 'aria-hidden': String(!cards.flipped) }, back);
+  var card = h('div', { class: 'card' + (cards.flipped ? ' flipped' : ''), tabindex: '0', role: 'button', 'aria-label': 'Карточка. Нажмите, чтобы перевернуть' },
+    h('div', { class: 'card-inner' }, f, b));
+  ui.card = card;
+
+  // свайп / клик
+  var sx = 0, dx = 0, drag = false, moved = false;
+  card.addEventListener('pointerdown', function (e) {
+    if (e.button > 0 || cards.busy || e.target.closest('.speak')) return;
+    drag = true; moved = false; sx = e.clientX; dx = 0;
+    try { card.setPointerCapture(e.pointerId); } catch (x) {}
+    card.classList.add('dragging');
+  });
+  card.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    dx = e.clientX - sx;
+    if (Math.abs(dx) > 6) moved = true;
+    card.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 25) + 'deg)';
+  });
+  card.addEventListener('pointerup', function () {
+    if (!drag) return;
+    drag = false; card.classList.remove('dragging'); card.style.transform = '';
+    if (Math.abs(dx) > 90) answerCard(dx > 0);
+    else if (!moved) flipCard();
+  });
+  card.addEventListener('pointercancel', function () { drag = false; card.classList.remove('dragging'); card.style.transform = ''; });
+
+  root.append(
+    h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': String(cards.idx) }, h('i', { style: 'width:' + (cards.idx / total * 100) + '%' })),
+    h('div', { class: 'meta' },
+      h('span', { text: 'Карточка ' + (cards.idx + 1) + ' из ' + total }),
+      h('span', { text: '✓ ' + cards.known + '   ↩ ' + cards.unknown })),
+    h('div', { class: 'card-wrap' }, card),
+    h('div', { class: 'actions' },
+      h('button', { class: 'btn no', onclick: function () { answerCard(false); } }, '← Не помню'),
+      h('button', { class: 'btn', onclick: flipCard }, 'Перевернуть'),
+      h('button', { class: 'btn yes', onclick: function () { answerCard(true); } }, 'Помню →')),
+    h('p', { class: 'keys' }, 'Клавиши: ← не помню · → помню · пробел — перевернуть. На телефоне можно свайпнуть карточку.'));
+  return root;
+}
+function flipCard() {
+  if (cards.busy || !ui.card) return;
+  cards.flipped = !cards.flipped;
+  ui.card.classList.toggle('flipped', cards.flipped);
+  var fs = ui.card.querySelectorAll('.face');
+  fs[0].setAttribute('aria-hidden', String(cards.flipped));
+  fs[1].setAttribute('aria-hidden', String(!cards.flipped));
+}
+function answerCard(ok) {
+  if (cards.busy || cards.idx >= cards.queue.length || !ui.card) return;
+  cards.busy = true;
+  ui.card.classList.add(ok ? 'fly-r' : 'fly-l');
+  setTimeout(function () {
+    if (ok) { cards.known++; cards.idx++; }
+    else { cards.unknown++; cards.queue.push(cards.queue.splice(cards.idx, 1)[0]); }
+    cards.flipped = false; cards.busy = false;
+    if (settings.tab === 'cards') drawCards();
+  }, 260);
+}
+
+// ---------- вкладка «Написать» ----------
+var wr = { sig: null, queue: [], idx: 0, score: 0, total: 0, result: null, hint: false, input: '', timer: null };
+function resetWrite() {
+  clearTimeout(wr.timer);
+  wr.sig = sig(); wr.queue = shuffle(words.map(function (w) { return w.id; }));
+  wr.idx = 0; wr.score = 0; wr.total = 0; wr.result = null; wr.hint = false; wr.input = '';
+}
+function norm(s) { return s.normalize('NFC').replace(/\s+/g, ''); }
+function drawWrite() {
+  if (!words.length) { view.replaceChildren(empty('Добавьте слова, чтобы тренировать написание.')); return; }
+  if (wr.sig !== sig()) resetWrite();
+  view.replaceChildren(buildWrite());
+  var inp = $('#writeInput');
+  if (inp) inp.focus();
+}
+function buildWrite() {
+  var root = h('div');
+  var total = wr.queue.length;
+  if (wr.idx >= total) {
+    root.append(h('div', { class: 'panel done' },
+      h('div', { style: 'font-size:3rem' }, '🏆'),
+      h('h2', null, 'Все иероглифы выучены!'),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat ok' }, h('b', { text: String(wr.score) }), h('span', null, 'Правильно ✓')),
+        h('div', { class: 'stat bad' }, h('b', { text: String(wr.total - wr.score) }), h('span', null, 'Ошибок ✗'))),
+      h('button', { class: 'btn', onclick: function () { resetWrite(); drawWrite(); } }, 'Начать заново 🔄')));
+    return root;
+  }
+  var w = wordMap()[wr.queue[wr.idx]];
+  var input = h('input', {
+    type: 'text', id: 'writeInput', lang: 'zh', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false',
+    class: wr.result || '', value: wr.input, readonly: !!wr.result, 'aria-label': 'Ваш ответ'
+  });
+  input.addEventListener('input', function () { wr.input = input.value; });
+  var composing = false, compEnd = 0;
+  input.addEventListener('compositionstart', function () { composing = true; });
+  input.addEventListener('compositionend', function () { composing = false; compEnd = Date.now(); });
+
+  var form = h('form', { onsubmit: function (e) {
+    e.preventDefault();
+    if (composing || Date.now() - compEnd < 40) return; // Enter подтверждает ввод IME, а не ответ
+    if (wr.result) nextWrite(); else checkWrite(w);
+  } },
+    input,
+    h('div', { class: 'result ' + (wr.result || ''), 'aria-live': 'polite' },
+      wr.result === 'ok' ? '✅ Правильно!' : null,
+      wr.result === 'bad' ? ['❌ Неправильно. Правильный ответ:', h('span', { class: 'ans', text: w.chinese + (w.pinyin ? '  ' + w.pinyin : '') })] : null),
+    h('div', { class: 'actions' },
+      h('button', { type: 'button', class: 'btn ghost', disabled: !!wr.result, onclick: function () { wr.hint = !wr.hint; drawWrite(); } }, '💡 Подсказка (пиньинь)'),
+      h('button', { type: 'submit', class: 'btn' }, wr.result ? 'Дальше →' : 'Проверить')));
+
+  root.append(h('div', { class: 'panel' },
+    h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': String(wr.idx) }, h('i', { style: 'width:' + (wr.idx / total * 100) + '%' })),
+    h('div', { class: 'meta' }, h('span', { text: 'Выучено ' + wr.idx + ' из ' + total }), h('span', { text: '✓ ' + wr.score + '   ✗ ' + (wr.total - wr.score) })),
+    h('div', { class: 'write-q' },
+      h('div', { class: 'lab hint' }, 'Напишите иероглиф:'),
+      h('div', { class: 'big', text: w.translation }),
+      h('div', { class: 'py', text: wr.hint ? (w.pinyin || 'Пиньинь для этого слова не указан') : '' })),
+    form));
+  return root;
+}
+function checkWrite(w) {
+  if (!wr.input.trim()) { toast('Введите иероглифы'); return; }
+  var ok = norm(wr.input) === norm(w.chinese);
+  wr.result = ok ? 'ok' : 'bad';
+  wr.total++; if (ok) wr.score++;
+  clearTimeout(wr.timer);
+  if (ok) wr.timer = setTimeout(nextWrite, 800);
+  drawWrite();
+}
+function nextWrite() {
+  clearTimeout(wr.timer);
+  if (!wr.result) return;
+  if (wr.result === 'ok') wr.idx++;
+  else wr.queue.push(wr.queue.splice(wr.idx, 1)[0]);
+  wr.result = null; wr.input = ''; wr.hint = false;
+  if (settings.tab === 'write') drawWrite();
+}
+
+// ---------- клавиатура ----------
+document.addEventListener('keydown', function (e) {
+  if (settings.tab !== 'cards' || e.ctrlKey || e.metaKey || e.altKey) return;
+  var t = e.target, tag = t && t.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); answerCard(false); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); answerCard(true); }
+  else if ((e.key === ' ' || e.key === 'Spacebar') && (tag !== 'BUTTON' || t.classList.contains('tab'))) { e.preventDefault(); flipCard(); }
+  else if (e.key === 'Enter' && t && t.classList && t.classList.contains('card')) { e.preventDefault(); flipCard(); }
+});
+
+buildTabs();
+show(settings.tab);
+})();
+</script>
 </body>
 </html>
